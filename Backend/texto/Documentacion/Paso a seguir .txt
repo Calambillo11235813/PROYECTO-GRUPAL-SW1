@@ -1,0 +1,82 @@
+Guía Paso a Paso: Desarrollo del Módulo de Detección de Texto IA
+Paso 1: Definición del Problema y Objetivos
+•	Objetivo claro: Crear un modelo de clasificación binaria que, dado un texto, lo etiquete como Humano o Generado por IA.
+•	Alcance inicial: Define los modelos de IA que quieres detectar (ej., GPT-3.5, GPT-4, Llama 2, Claude) y los tipos de texto (ej., ensayos académicos, noticias, posts de redes sociales, correos electrónicos).
+•	Métrica de éxito: Establece métricas clave. La Precisión (Accuracy) es importante, pero en este problema los Falsos Positivos (texto humano marcado como IA) son muy graves porque pueden acusar erróneamente a una persona. Prioriza:
+o	Precisión (Precision): De todos los textos que el modelo dijo ser IA, ¿cuántos realmente lo eran?
+o	Exhaustividad (Recall): De todos los textos que son IA, ¿cuántos logró encontrar el modelo?
+o	Puntuación F1 (F1-Score): Media armónica de Precisión y Exhaustividad. Es una buena métrica general.
+o	Área bajo la curva ROC (AUC-ROC): Mide la capacidad del modelo para distinguir entre las dos clases.
+Paso 2: Recopilación y Preparación de Datos (El paso MÁS IMPORTANTE)
+La calidad de tus datos determina el techo de rendimiento de tu modelo.
+1.	Fuentes de Datos Humanos:
+o	Libros y Artículos: Proyectos Gutenberg, arXiv.org, artículos de Wikipedia de alta calidad.
+o	Redes Sociales: Recopilar posts y comentarios de Reddit o Twitter (asegurándote de cumplir con las políticas de uso de datos y privacidad, GDPR).
+o	Conjuntos de datos públicos: HC3 (Human-ChatGPT Comparison Corpus), datasets de ensayos estudiantiles.
+2.	Fuentes de Datos Generados por IA:
+o	Generación propia: Usa las APIs de OpenAI (GPT), Anthropic (Claude), Meta (Llama) para generar texto en masa. Crucial: Para cada prompt usado para generar texto, también debes generar texto humano (p. ej., escribiendo tú la respuesta o encontrando una respuesta humana a ese mismo prompt). Esto crea pares de datos equilibrados.
+o	Conjuntos de datos públicos: El mismo dataset HC3 es excelente. Hay otros en plataformas como Hugging Face.
+3.	Preprocesamiento y Etiquetado:
+o	Limpieza: Normaliza el texto (minúsculas, eliminar caracteres especiales), pero ten cuidado, ya que algunos patrones de IA podrían estar en el formato.
+o	Tokenización: Divide el texto en palabras o subpalabras (usando tokenizadores como BertTokenizer o GPT2Tokenizer).
+o	Balanceo: Asegúrate de que tienes un número similar de ejemplos de ambas clases para evitar un modelo sesgado.
+o	División: Separa tus datos en tres conjuntos:
+	Entrenamiento (70-80%): Para enseñar al modelo.
+	Validación (10-15%): Para ajustar hiperparámetros durante el entrenamiento.
+	Pruebas (10-15%): Para evaluar el rendimiento final del modelo con datos que nunca ha visto.
+Paso 3: Ingeniería de Características (Feature Engineering)
+Además del texto crudo, extraer características específicas puede ayudar muchísimo al modelo.
+•	Características Estilísticas:
+o	Perplejidad (Perplexity): Mide cuán "sorprendido" está un modelo de lenguaje (p. ej., GPT-2) al ver el texto. Los textos de IA suelen tener una perplejidad más baja (son más predecibles).
+o	Burstiness: Mide la variación en la longitud y estructura de las oraciones. El texto humano tiende a ser más variable.
+o	Diversidad Léxica: Ratio de palabras únicas sobre el total de palabras (TTR - Type-Token Ratio).
+o	Longitud Promedio de Palabras y Oraciones.
+•	Características Estadísticas:
+o	Frecuencia de Palabras Funcionales: (el, de, que, y, en...).
+o	Patrones de Posicionamiento de Palabras.
+•	Embeddings de Texto:
+o	Usa modelos preentrenados como BERT o Sentence-Transformers para convertir párrafos o textos completos en vectores numéricos densos que capturen significado semántico. Estas representaciones serán la entrada principal de tu modelo.
+Paso 4: Elección y Entrenamiento del Modelo
+No empieces desde cero. Utiliza Transfer Learning.
+1.	Modelo Base: Elige un modelo transformer preentrenado especializado en comprensión de lenguaje, como:
+o	BERT: Muy buen rendimiento en tareas de clasificación.
+o	RoBERTa: Una versión optimizada de BERT.
+o	DeBERTa: A menudo supera a BERT y RoBERTa en varias benchmarks.
+o	ELECTRA: Eficiente y potente.
+2.	Ajuste Fino (Fine-Tuning):
+o	Toma el modelo preentrenado (p. ej., bert-base-uncased) y añade una capa de clasificación simple (una capa lineal) encima.
+o	Congela las primeras capas del modelo y entrena solo las últimas y el clasificador, o entrena todo el modelo con una tasa de aprendizaje muy baja.
+o	Framework: Usa Hugging Face Transformers con PyTorch o TensorFlow. Es el estándar de la industria y simplifica enormemente este proceso.
+3.	Entrenamiento:
+o	Hiperparámetros: Tasa de aprendizaje baja (e.g., 2e-5), tamaño de lote (batch size) pequeño (8, 16, 32).
+o	Monitorización: Usa el conjunto de validación para monitorizar la pérdida (loss) y las métricas (F1) para evitar el sobreajuste (overfitting). Puedes usar técnicas como early stopping.
+Paso 5: Evaluación Rigurosa
+•	Prueba con el conjunto de Test: Ejecuta las predicciones finales en el conjunto de pruebas que apartaste al principio.
+•	Matriz de Confusión: Analiza en detalle los falsos positivos y falsos negativos.
+•	Sesgo y Robustez:
+o	Prueba el modelo con textos de distintos dominios (no solo los usados en entrenamiento).
+o	Prueba con texto generado por un modelo de IA diferente al que usaste para entrenar. ¿Generaliza bien?
+o	Este es el mayor desafío: Un modelo puede ser excelente detectando texto de GPT-3.5 pero pésimo detectando texto de GPT-4 o Claude 3.
+Paso 6: Implementación e Integración en tu Módulo
+•	Exportación: Guarda el modelo entrenado y el tokenizador (Hugging Face lo hace fácil con .save_pretrained()).
+•	API: Crea una API REST usando FastAPI o Django REST Framework. El endpoint recibirá un texto y devolverá un JSON con la predicción y la probabilidad.
+o	POST /api/v1/predict-text
+o	Body: {"text": "El texto a analizar aquí..."}
+o	Response: {"label": "IA", "confidence": 0.97, "human_score": 0.03}
+•	Preprocesamiento: Integra en la API la lógica para calcular características adicionales como la perplejidad (necesitarás cargar un modelo de lenguaje pequeño como GPT-2 solo para esto).
+•	Escalabilidad: Tu API de Django (mencionada en el documento) puede consumir este servicio.
+Paso 7: Despliegue y Monitorización Continua
+•	Empaquetado: Usa Docker para contenerizar tu modelo y su API.
+•	Despliegue: Despliega el contenedor en tu infraestructura (AWS EC2, Google Cloud Run, etc.).
+•	Monitorización: CRUCIAL. La IA generativa evoluciona constantemente. Tu modelo se volverá obsoleto.
+o	Recoge textos que los usuarios envían para analizar (anonimizados).
+o	Implementa un sistema de aprendizaje activo o fine-tuning continuo donde, periódicamente, reentrenes tu modelo con nuevos datos de los modelos de IA más recientes.
+________________________________________
+Stack Tecnológico Recomendado para este Módulo
+•	Lenguaje: Python
+•	ML Framework: PyTorch / TensorFlow
+•	Biblioteca de Modelos: Hugging Face Transformers
+•	Procesamiento de Datos: Pandas, NumPy
+•	API: FastAPI (es muy ligero y rápido para ML) o Django REST Framework (si quieres integración total con tu proyecto Django).
+•	Calculo de Características: NLTK, TextStat, biblioteca transformers (para calcular perplejidad con GPT-2).
+•	Despliegue: Docker, AWS EC2/Google Cloud Run.
