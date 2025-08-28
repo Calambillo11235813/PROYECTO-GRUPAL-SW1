@@ -1,1 +1,6 @@
 Django>=5.2.5
+pandas
+numpy
+scikit-learn
+transformers
+torch
