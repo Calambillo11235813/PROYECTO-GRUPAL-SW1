@@ -1,6 +1,10 @@
 Django>=5.2.5
+djangorestframework
 pandas
 numpy
 scikit-learn
 transformers
 torch
+torchaudio
+speechbrain
+librosa
