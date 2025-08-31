@@ -8,3 +8,4 @@ torch
 torchaudio
 speechbrain
 librosa
+psycopg2-binary
