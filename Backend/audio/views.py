@@ -1,3 +1,4 @@
+# backend/audio/views.py
 import os
 from django.shortcuts import render
 from django.views import View
@@ -8,6 +9,7 @@ from rest_framework import status
 from .models import AudioUpload
 from .serializers import AudioUploadSerializer
 from .ia_model import verificar_autenticidad
+from .utils import generar_espectrograma
 
 class AudioUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -22,10 +24,12 @@ class AudioUploadView(APIView):
                 # Procesar el audio con el modelo de IA
                 audio_path = audio_upload.file.path
                 result, probability = verificar_autenticidad(audio_path)
+                spectrogram_path = generar_espectrograma(audio_path, str(audio_upload.id))
                 
                 # Actualizar el modelo con los resultados
                 audio_upload.result = result
                 audio_upload.probability = probability
+                audio_upload.spectrogram = spectrogram_path
                 audio_upload.save()
                 
                 # Devolver los resultados
