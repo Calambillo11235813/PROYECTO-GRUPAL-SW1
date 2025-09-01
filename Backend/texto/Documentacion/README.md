@@ -1,3 +1,26 @@
+
+
+
+## Preparación y estructura del dataset binario
+
+Para entrenar el modelo de clasificación, es necesario contar con un dataset combinado que incluya textos humanos y textos generados por IA, cada uno correctamente etiquetado.
+
+**Formato recomendado:**
+- Archivo CSV con dos columnas: `text` (texto limpio) y `label` (`human` o `ia`).
+
+**Script de combinación:**
+Se ha creado el script `combinar_datos.py` en la carpeta `Backend/texto/` que:
+1. Carga los textos desde las carpetas `data/human` y `data/ia`.
+2. Limpia cada texto usando la función `clean_text`.
+3. Asigna la etiqueta correspondiente.
+4. Combina y mezcla aleatoriamente los textos.
+5. Guarda el resultado en `dataset_binario.csv`.
+
+**Uso:**
+1. Coloca los archivos `.txt` de textos humanos en `data/human` y los de IA en `data/ia`.
+2. Ejecuta el script para generar el dataset listo para entrenamiento.
+
+Este proceso asegura que el modelo reciba datos balanceados y correctamente etiquetados.
 # Módulo de Detección de Texto IA
 
 ## Paso 1: Definición del Problema y Objetivos
@@ -109,13 +132,62 @@ Hasta este punto se han realizado los siguientes avances:
 - Archivo `requirements.txt` actualizado con todas las librerías necesarias.
 - Script inicial de preprocesamiento creado.
 
-**Próximo paso:**
-Documentar y desarrollar la elección y entrenamiento del modelo de clasificación binaria (por ejemplo, usando BERT, RoBERTa, etc.)
+**Próximo paso completado:**
 
-Este contexto servirá como referencia para continuar el desarrollo mañana.
+### Elección y entrenamiento del modelo de clasificación binaria
+
+Se ha creado el script `entrenamiento_modelo.py` que realiza el entrenamiento de un modelo BERT para distinguir textos humanos de textos generados por IA. El proceso incluye:
+
+1. **Selección del modelo base:** Se utiliza `bert-base-uncased` de Hugging Face Transformers.
+2. **Carga de datos:** Se emplea el dataset preprocesado (`human_texts_cleaned.csv` o el dataset combinado).
+3. **Tokenización:** Los textos se tokenizan y preparan para el modelo.
+4. **División de datos:** Separación en conjuntos de entrenamiento y validación.
+5. **Entrenamiento:** Se ajusta el modelo usando la clase `Trainer` de Transformers.
+6. **Guardado:** El modelo y el tokenizador se guardan en la carpeta `modelo_binario`.
+
+#### Script de referencia
+El script se encuentra en `Backend/texto/entrenamiento_modelo.py` y puede adaptarse según el dataset y los parámetros específicos del proyecto.
+
+**Siguientes pasos:**
+- Evaluar el modelo entrenado y documentar los resultados.
+- Integrar el modelo en una API REST para predicción en tiempo real.
+
+Este archivo se irá actualizando conforme avancemos en el desarrollo del módulo.
 
 ---
 
-En el siguiente paso se documentará la elección y entrenamiento del modelo.
+# Proyecto de Procesamiento de Textos
 
-Este archivo se irá actualizando conforme avancemos en el desarrollo del módulo.
+## Estado Actual del Desarrollo
+
+El proyecto se encuentra actualmente en la fase de preparación de datos para el entrenamiento del modelo. A continuación se detalla el progreso hasta la fecha y los próximos pasos a seguir.
+
+### Progreso Actual
+
+1. ✅ Obtención del dataset inicial en inglés (`Dataset/Training_Essay_Data.csv`)
+2. ✅ Creación de scripts para traducción del dataset al español
+3. ✅ División del dataset en partes traducidas y pendientes:
+   - `dataset_parte_traducida.csv`: Contiene ~3,028 filas ya traducidas
+   - `dataset_parte_pendiente.csv`: Contiene ~26,117 filas pendientes de traducir
+
+### Punto de Parada
+
+El desarrollo se ha detenido temporalmente debido a:
+- Limitaciones en las APIs gratuitas de traducción que impiden procesar grandes volúmenes de texto
+- Errores de compatibilidad entre las bibliotecas de traducción y la versión de Python (3.11+)
+
+## Cómo Continuar el Desarrollo
+
+### 1. Completar la Traducción del Dataset
+
+Para continuar con la traducción del dataset pendiente, siga estos pasos:
+
+```bash
+# Activar el entorno virtual
+cd Backend
+.\venv\Scripts\activate
+
+# Ejecutar el script de traducción mejorado
+cd texto\Dataset_traducidos
+python traducir_dataset_mejorado.py
+```
