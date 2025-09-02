@@ -36,7 +36,12 @@
 
                     <div class="mt-3">
                         <h5>Espectrograma</h5>
-                        <img id="resultSpectrogram" class="img-fluid" />
+                        <img id="resultSpectrogram" class="img-fluid mb-3" />
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button id="downloadCertBtn" class="btn btn-success">
+                                <i class="bi bi-file-earmark-pdf"></i> Descargar Certificado PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -58,7 +63,7 @@
             formData.append('file', fileInput.files[0]);
 
             try {
-                const response = await fetch('/api/audio/analyze/', {
+                const response = await fetch('/analyze/', {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-CSRFToken': getCookie('csrftoken') }
@@ -97,7 +102,7 @@
 
         async function loadHistory() {
             try {
-                const response = await fetch('/api/audio/analyze/');
+                const response = await fetch('/analyze/');
                 const data = await response.json();
 
                 const historyDiv = document.getElementById('history');
@@ -108,7 +113,7 @@
                     itemElement.className = 'list-group-item';
                     itemElement.innerHTML = `
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">${item.file.split('/').pop()}</h5>
+                            <h5 class="mb-1">${item.original_filename || item.file.split('/').pop()}</h5>
                             <small class="text-${item.result === 'real' ? 'success' : 'danger'}">
                                 ${item.result === 'real' ? 'Real' : 'Fake'} (${(item.probability * 100).toFixed(2)}%)
                             </small>
@@ -143,7 +148,57 @@
         }
 
          
-        document.addEventListener('DOMContentLoaded', loadHistory);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistory();
+            
+            // Add event listener for the download certificate button
+            document.getElementById('downloadCertBtn').addEventListener('click', function() {
+                const audioId = this.getAttribute('data-audio-id');
+                if (audioId) {
+                    // Open the certificate URL in a new tab to trigger download
+                    window.open(`/certificado/${audioId}/`, '_blank');
+                }
+            });
+        });
+
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            const statusSpan = document.getElementById('resultStatus');
+            const probabilitySpan = document.getElementById('resultProbability');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const spectrogramImg = document.getElementById('resultSpectrogram');
+            const downloadBtn = document.getElementById('downloadCertBtn');
+
+            // Set the result data
+            statusSpan.textContent = data.result === 'real' ? 'Voz Auténtica' : 'Posible IA';
+            statusSpan.className = data.result === 'real' ? 'text-success fw-bold' : 'text-danger fw-bold';
+            
+            const probability = (data.probability * 100).toFixed(2);
+            probabilitySpan.textContent = `${probability}%`;
+            
+            // Set audio source
+            audioPlayer.src = data.file_url;
+            
+            // Set spectrogram image if available
+            if (data.spectrogram) {
+                spectrogramImg.src = data.spectrogram;
+                spectrogramImg.style.display = 'block';
+            } else {
+                spectrogramImg.style.display = 'none';
+            }
+            
+            // Set audio ID for certificate download
+            downloadBtn.setAttribute('data-audio-id', data.id);
+            
+            // Show the result section
+            resultDiv.style.display = 'block';
+            
+            // Scroll to results
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+            
+            // Reload history to show the new analysis
+            loadHistory();
+        }
     </script>
 </body>
 
