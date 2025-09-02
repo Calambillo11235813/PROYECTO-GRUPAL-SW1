@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -26,6 +27,77 @@ SECRET_KEY = 'django-insecure-^p=%8&dp(safqc558x^jguen8ayk3dcdimz&1(bqy%a1krudot
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+
+# Configuración de archivos multimedia
+
+# Configuración para audio
+TIPOS_AUDIO_PERMITIDOS = [
+    'audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/wave',
+    'audio/x-wav', 'audio/x-m4a', 'audio/aac'
+]
+
+# Configuración para video (futura implementación)
+TIPOS_VIDEO_PERMITIDOS = [
+    'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv',
+    'video/x-flv', 'video/webm', 'video/3gpp', 'video/mpeg'
+]
+
+# Tipos de archivo permitidos (audio + video)
+TIPOS_ARCHIVO_PERMITIDOS = TIPOS_AUDIO_PERMITIDOS + TIPOS_VIDEO_PERMITIDOS
+
+# Tamaños máximos (en bytes)
+TAMANO_MAXIMO_AUDIO = 50 * 1024 * 1024  # 50 MB
+TAMANO_MAXIMO_VIDEO = 500 * 1024 * 1024  # 500 MB
+TAMANO_MAXIMO_ARCHIVO = TAMANO_MAXIMO_VIDEO  # Usar el más grande por defecto
+
+# Rutas de almacenamiento
+RUTA_SUBIDA_AUDIOS = 'audios/'
+RUTA_SUBIDA_VIDEOS = 'videos/'
+RUTA_ESPECTROGRAMAS = 'plots/'
+RUTA_FOTOGRAFIAS = 'frames/'  # Para extracción de frames de video
+RUTA_LOGS = os.path.join(BASE_DIR, 'logs')
+
+# Crear directorio de logs si no existe
+os.makedirs(RUTA_LOGS, exist_ok=True)
+
+# Configuración de logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(RUTA_LOGS, 'audio_analysis.log'),
+            'maxBytes': 1024*1024*5,  # 5MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf8',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'audio': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
 
 # Media files
 MEDIA_URL = '/media/'
