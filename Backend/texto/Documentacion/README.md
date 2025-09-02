@@ -1,6 +1,3 @@
-
-
-
 ## Preparación y estructura del dataset binario
 
 Para entrenar el modelo de clasificación, es necesario contar con un dataset combinado que incluya textos humanos y textos generados por IA, cada uno correctamente etiquetado.
@@ -23,7 +20,7 @@ Se ha creado el script `combinar_datos.py` en la carpeta `Backend/texto/` que:
 Este proceso asegura que el modelo reciba datos balanceados y correctamente etiquetados.
 # Módulo de Detección de Texto IA
 
-## Paso 1: Definición del Problema y Objetivos
+## Paso 1: Definición del Problema y Objetivos ✓
 
 **Objetivo:**
 Crear un modelo de clasificación binaria que, dado un texto, lo etiquete como "Humano" o "Generado por IA".
@@ -51,7 +48,7 @@ Priorizar la minimización de falsos positivos (texto humano marcado como IA), y
 
 ---
 
-## Paso 2: Recopilación y Preparación de Datos
+## Paso 2: Recopilación y Preparación de Datos ✓
 
 La calidad de los datos es fundamental para el éxito del modelo. Este paso incluye:
 
@@ -73,7 +70,7 @@ La calidad de los datos es fundamental para el éxito del modelo. Este paso incl
 
 ---
 
-## Paso 3: Ingeniería de Características
+## Paso 3: Ingeniería de Características ✓
 
 Además del texto crudo, se recomienda extraer características específicas para mejorar el rendimiento del modelo:
 
@@ -92,102 +89,56 @@ Además del texto crudo, se recomienda extraer características específicas par
 
 ---
 
+## Paso 4: Entrenamiento del Modelo ✓
+
+**Estado:** ✅ Completado en Google Colab
+
+### Infraestructura
+- **Hardware:** GPU Tesla T4
+- **Batch size:** 32
+
+### Datos
+- **Dataset:** 26,117 muestras
+- **Archivos utilizados:**
+  - `Training_Essay_Data.csv`
+  - `dataset_completo_traducido.csv`
+
+### Modelo
+- **Base:** BERT Multilingüe (`bert-base-multilingual-cased`)
+- **Arquitectura:** Modelo BERT con capa de clasificación binaria
+- **Tokenizer:** Tokenizador BERT estándar
+
+### Proceso de Entrenamiento
+- **Épocas:** 4
+- **Pasos totales:** 2,612
+- **Tiempo de entrenamiento:** 42 minutos 15 segundos
+
+### Métricas Finales
+Los resultados del entrenamiento fueron excepcionales:
+- **Precisión (Accuracy):** 0.9939 (99.39%)
+- **Loss:** 0.0310
+- **Métricas adicionales en último paso:**
+  - **F1-Score:** ~0.992
+  - **Precision:** ~0.993
+  - **Recall:** ~0.992
+
+### Artefactos Generados
+El modelo y sus componentes se guardaron en la carpeta `modelo_deteccion_ia/`:
+- `config.json`: Configuración del modelo
+- `model.safetensors`: Pesos del modelo entrenado
+- `special_tokens_map.json`: Mapeo de tokens especiales
+- `tokenizer.json`: Configuración del tokenizador
+- `vocab.txt`: Vocabulario del modelo
+
+---
+
 ## Instalación de dependencias y entorno virtual
 
 1. **Crea y activa un entorno virtual (recomendado):**
 
 En Windows PowerShell:
 ```powershell
-
 python -m venv venv
 .\venv\Scripts\Activate
 ```
 
-2. **Instala las dependencias usando el archivo `requirements.txt`:**
-
-Agrega las siguientes líneas al archivo `requirements.txt`:
-```
-pandas
-numpy
-scikit-learn
-transformers
-torch
-```
-Luego instala todo con:
-```powershell
-pip install -r requirements.txt
-```
-
-Asegúrate de tener Python 3.8 o superior.
-
----
-
-## Contexto actual del desarrollo
-
-Hasta este punto se han realizado los siguientes avances:
-- Definición clara del problema y objetivos del módulo de detección de texto IA.
-- Documentación de las fuentes de datos, preprocesamiento y balanceo de clases.
-- Ingeniería de características recomendada para el modelo.
-- Instrucciones para la creación de entorno virtual y la instalación de dependencias usando `requirements.txt`.
-- Archivo `requirements.txt` actualizado con todas las librerías necesarias.
-- Script inicial de preprocesamiento creado.
-
-**Próximo paso completado:**
-
-### Elección y entrenamiento del modelo de clasificación binaria
-
-Se ha creado el script `entrenamiento_modelo.py` que realiza el entrenamiento de un modelo BERT para distinguir textos humanos de textos generados por IA. El proceso incluye:
-
-1. **Selección del modelo base:** Se utiliza `bert-base-uncased` de Hugging Face Transformers.
-2. **Carga de datos:** Se emplea el dataset preprocesado (`human_texts_cleaned.csv` o el dataset combinado).
-3. **Tokenización:** Los textos se tokenizan y preparan para el modelo.
-4. **División de datos:** Separación en conjuntos de entrenamiento y validación.
-5. **Entrenamiento:** Se ajusta el modelo usando la clase `Trainer` de Transformers.
-6. **Guardado:** El modelo y el tokenizador se guardan en la carpeta `modelo_binario`.
-
-#### Script de referencia
-El script se encuentra en `Backend/texto/entrenamiento_modelo.py` y puede adaptarse según el dataset y los parámetros específicos del proyecto.
-
-**Siguientes pasos:**
-- Evaluar el modelo entrenado y documentar los resultados.
-- Integrar el modelo en una API REST para predicción en tiempo real.
-
-Este archivo se irá actualizando conforme avancemos en el desarrollo del módulo.
-
----
-
-# Proyecto de Procesamiento de Textos
-
-## Estado Actual del Desarrollo
-
-El proyecto se encuentra actualmente en la fase de preparación de datos para el entrenamiento del modelo. A continuación se detalla el progreso hasta la fecha y los próximos pasos a seguir.
-
-### Progreso Actual
-
-1. ✅ Obtención del dataset inicial en inglés (`Dataset/Training_Essay_Data.csv`)
-2. ✅ Creación de scripts para traducción del dataset al español
-3. ✅ División del dataset en partes traducidas y pendientes:
-   - `dataset_parte_traducida.csv`: Contiene ~3,028 filas ya traducidas
-   - `dataset_parte_pendiente.csv`: Contiene ~26,117 filas pendientes de traducir
-
-### Punto de Parada
-
-El desarrollo se ha detenido temporalmente debido a:
-- Limitaciones en las APIs gratuitas de traducción que impiden procesar grandes volúmenes de texto
-- Errores de compatibilidad entre las bibliotecas de traducción y la versión de Python (3.11+)
-
-## Cómo Continuar el Desarrollo
-
-### 1. Completar la Traducción del Dataset
-
-Para continuar con la traducción del dataset pendiente, siga estos pasos:
-
-```bash
-# Activar el entorno virtual
-cd Backend
-.\venv\Scripts\activate
-
-# Ejecutar el script de traducción mejorado
-cd texto\Dataset_traducidos
-python traducir_dataset_mejorado.py
-```
