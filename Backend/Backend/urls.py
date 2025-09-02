@@ -11,8 +11,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('audio.urls')),  # Moved to root to serve the main interface at /
-    path('api/audio/', include('audio.api_urls')),  # API endpoints under /api/audio/
+    path('', include('audio.urls')),  # Main interface and API endpoints
 ]
 
 # Servir archivos de medios en desarrollo
