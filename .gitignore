@@ -32,3 +32,5 @@ staticfiles/
 .env
 
 *.csv
+!Backend/texto/Dataset/*.csv
+!Backend/texto/Dataset_traducidos/*.csv
