@@ -34,3 +34,6 @@ staticfiles/
 *.csv
 !Backend/texto/Dataset/*.csv
 !Backend/texto/Dataset_traducidos/*.csv
+
+
+README_DESARROLLADOR.md
