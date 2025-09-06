@@ -4,7 +4,9 @@ from django.views.decorators.http import require_http_methods
 import json
 import logging
 from .predictor import get_predictor
-from .models import AnalisisTexto
+from .models import AnalisisTexto, ArchivoAnalisis
+from .file_processor import FileProcessor
+import hashlib
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -237,4 +239,199 @@ def info_modelos(request):
     except Exception as e:
         return JsonResponse({
             'error': f'Error al obtener información de modelos: {str(e)}'
+        }, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def analizar_archivo(request):
+    """Analiza archivos TXT, PDF, DOCX para detectar contenido generado por IA"""
+    try:
+        # Verificar que se subió un archivo
+        if 'archivo' not in request.FILES:
+            return JsonResponse({
+                'error': 'No se encontró ningún archivo',
+                'codigo': 'ARCHIVO_FALTANTE'
+            }, status=400)
+        
+        archivo = request.FILES['archivo']
+        modelo_seleccionado = request.POST.get('modelo', 'B')
+        
+        # Validar archivo
+        es_valido, mensaje = FileProcessor.validate_file(archivo)
+        if not es_valido:
+            return JsonResponse({
+                'error': mensaje,
+                'codigo': 'ARCHIVO_INVALIDO'
+            }, status=400)
+        
+        # Extraer texto del archivo
+        exito, texto_extraido = FileProcessor.extract_text(archivo)
+        if not exito:
+            return JsonResponse({
+                'error': texto_extraido,
+                'codigo': 'ERROR_EXTRACCION'
+            }, status=400)
+        
+        # Validar que el texto extraído no esté vacío
+        if not texto_extraido or len(texto_extraido.strip()) < 10:
+            return JsonResponse({
+                'error': 'El archivo no contiene suficiente texto para analizar (mínimo 10 caracteres)',
+                'codigo': 'TEXTO_INSUFICIENTE'
+            }, status=400)
+        
+        # Limitar longitud del texto
+        if len(texto_extraido) > 10000:
+            texto_extraido = texto_extraido[:10000] + "..."
+        
+        # Realizar predicción
+        predictor = get_predictor(modelo_seleccionado)
+        resultado_dict = predictor.predict(texto_extraido)  # CORREGIDO: cambio de predecir a predict
+        
+        # Verificar si hubo error en la predicción
+        if 'error' in resultado_dict:
+            return JsonResponse({
+                'error': resultado_dict['error'],
+                'codigo': 'ERROR_PREDICCION'
+            }, status=500)
+        
+        # Extraer valores del diccionario
+        resultado = resultado_dict['prediccion']
+        probabilidad_ia = resultado_dict['probabilidad_ia']
+        probabilidad_humano = resultado_dict['probabilidad_humano']
+        
+        # Calcular hash del archivo
+        archivo.seek(0)
+        file_hash = hashlib.sha256(archivo.read()).hexdigest()
+        archivo.seek(0)
+        
+        # Obtener información del archivo
+        file_extension = archivo.name.split('.')[-1].lower()
+        
+        # Guardar análisis en base de datos
+        analisis = AnalisisTexto.objects.create(
+            texto=texto_extraido,
+            resultado_prediccion=resultado,
+            probabilidad_ia=probabilidad_ia,
+            probabilidad_humano=probabilidad_humano,
+            tipo_entrada='ARCHIVO',
+            nombre_archivo=archivo.name,
+            tamano_archivo=archivo.size,
+            tipo_archivo=f'.{file_extension}'
+        )
+        
+        # Guardar información adicional del archivo
+        ArchivoAnalisis.objects.create(
+            analisis=analisis,
+            hash_archivo=file_hash
+        )
+        
+        return JsonResponse({
+            'resultado': resultado,
+            'probabilidad_ia': round(probabilidad_ia, 4),
+            'probabilidad_humano': round(probabilidad_humano, 4),
+            'archivo_info': {
+                'nombre': archivo.name,
+                'tamano': archivo.size,
+                'tipo': f'.{file_extension}',
+                'texto_extraido_preview': texto_extraido[:200] + "..." if len(texto_extraido) > 200 else texto_extraido
+            },
+            'analisis_id': analisis.id,
+            'modelo_utilizado': modelo_seleccionado,
+            'fecha_analisis': analisis.fecha_analisis.isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en analizar_archivo: {str(e)}")
+        return JsonResponse({
+            'error': f'Error interno del servidor: {str(e)}',
+            'codigo': 'ERROR_INTERNO'
+        }, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def comparar_modelos_archivo(request):
+    """Compara ambos modelos usando un archivo subido"""
+    try:
+        if 'archivo' not in request.FILES:
+            return JsonResponse({
+                'error': 'No se encontró ningún archivo',
+                'codigo': 'ARCHIVO_FALTANTE'
+            }, status=400)
+        
+        archivo = request.FILES['archivo']
+        
+        # Validar archivo
+        es_valido, mensaje = FileProcessor.validate_file(archivo)
+        if not es_valido:
+            return JsonResponse({
+                'error': mensaje,
+                'codigo': 'ARCHIVO_INVALIDO'
+            }, status=400)
+        
+        # Extraer texto
+        exito, texto_extraido = FileProcessor.extract_text(archivo)
+        if not exito:
+            return JsonResponse({
+                'error': texto_extraido,
+                'codigo': 'ERROR_EXTRACCION'
+            }, status=400)
+        
+        # Limitar longitud
+        if len(texto_extraido) > 10000:
+            texto_extraido = texto_extraido[:10000] + "..."
+        
+        # Realizar predicción con ambos modelos
+        predictor_b = get_predictor('B')
+        predictor_n = get_predictor('N')
+        
+        resultado_dict_b = predictor_b.predict(texto_extraido)  # CORREGIDO: cambio de predecir a predict
+        resultado_dict_n = predictor_n.predict(texto_extraido)  # CORREGIDO: cambio de predecir a predict
+        
+        # Verificar errores
+        if 'error' in resultado_dict_b:
+            return JsonResponse({
+                'error': f'Error modelo B: {resultado_dict_b["error"]}',
+                'codigo': 'ERROR_PREDICCION_B'
+            }, status=500)
+            
+        if 'error' in resultado_dict_n:
+            return JsonResponse({
+                'error': f'Error modelo N: {resultado_dict_n["error"]}',
+                'codigo': 'ERROR_PREDICCION_N'
+            }, status=500)
+        
+        # Extraer valores de los diccionarios
+        resultado_b = resultado_dict_b['prediccion']
+        prob_ia_b = resultado_dict_b['probabilidad_ia']
+        prob_humano_b = resultado_dict_b['probabilidad_humano']
+        
+        resultado_n = resultado_dict_n['prediccion']
+        prob_ia_n = resultado_dict_n['probabilidad_ia']
+        prob_humano_n = resultado_dict_n['probabilidad_humano']
+        
+        return JsonResponse({
+            'archivo_info': {
+                'nombre': archivo.name,
+                'tamano': archivo.size,
+                'tipo': archivo.name.split('.')[-1].lower()
+            },
+            'modelo_b': {
+                'resultado': resultado_b,
+                'probabilidad_ia': round(prob_ia_b, 4),
+                'probabilidad_humano': round(prob_humano_b, 4)
+            },
+            'modelo_n': {
+                'resultado': resultado_n,
+                'probabilidad_ia': round(prob_ia_n, 4),
+                'probabilidad_humano': round(prob_humano_n, 4)
+            },
+            'consenso': resultado_b if resultado_b == resultado_n else 'DISCREPANCIA',
+            'texto_preview': texto_extraido[:200] + "..." if len(texto_extraido) > 200 else texto_extraido
+        })
+        
+    except Exception as e:
+        logger.error(f"Error en comparar_modelos_archivo: {str(e)}")
+        return JsonResponse({
+            'error': f'Error interno del servidor: {str(e)}',
+            'codigo': 'ERROR_INTERNO'
         }, status=500)
