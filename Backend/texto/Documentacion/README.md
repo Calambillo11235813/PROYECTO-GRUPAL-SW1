@@ -90,7 +90,7 @@ Crear un sistema de clasificación binaria que determine si un texto fue generad
 - **Características semánticas:** Comprensión del contexto
 
 ### **Tokenización:**
-- **Modelo N:** BERT base (inglés)
+- **Modelo N:** BERT multilingue (español y ingles )
 - **Modelo B:** BERT multilingüe (119,547 vocabulario)
 
 ---
@@ -104,8 +104,8 @@ Crear un sistema de clasificación binaria que determine si un texto fue generad
 
 ### **Modelos Entrenados:**
 
-#### **Modelo N (Experimental - Inglés):**
-- **Base:** `bert-base-uncased`
+#### **Modelo N (Experimental - Inglés y español):**
+- **Base:** `bert-base-multilingual-cased`
 - **Especialización:** Textos en inglés
 - **Vocab size:** ~30,522 tokens
 - **Estado:** ✅ Funcional
@@ -144,6 +144,37 @@ API:                  Django REST Framework
 Containerization:     Docker & docker-compose
 Environment:          Python 3.13 + Virtual Environment
 ```
+## ✅ Historia de Usuario Implementada
+
+### **HU-001: Análisis de Archivos de Texto**
+> **Como usuario, quiero cargar un archivo de texto (TXT, PDF, DOCX) para analizar si fue generado por IA, de manera que pueda verificar la autenticidad del contenido.**
+
+**Estado:** ✅ **COMPLETAMENTE IMPLEMENTADA**
+
+## 🚀 Funcionalidades Desarrolladas
+
+### **1. Carga y Análisis de Archivos**
+- ✅ **Formatos soportados**: TXT, PDF, DOCX
+- ✅ **Validación de archivos**: Formato, tamaño máximo, contenido mínimo
+- ✅ **Extracción de texto**: Procesamiento automático de documentos
+- ✅ **Análisis con modelo específico**: Selección entre Modelo B y Modelo N
+- ✅ **Almacenamiento en BD**: PostgreSQL con historial completo
+
+### **2. Comparación de Modelos**
+- ✅ **Análisis dual**: Comparación automática entre ambos modelos
+- ✅ **Detección de discrepancias**: Identificación de casos ambiguos
+- ✅ **Consenso inteligente**: Recomendaciones basadas en concordancia
+
+### **3. APIs REST Completas**
+- ✅ **Endpoints de archivos**: `/analizar-archivo/`, `/comparar-archivo/`
+- ✅ **Endpoints de texto directo**: `/analizar/`, `/comparar/`
+- ✅ **Validaciones robustas**: Manejo de errores y casos edge
+- ### **4. Sistema de Validaciones**
+- ✅ **Formato de archivo**: Solo TXT, PDF, DOCX permitidos
+- ✅ **Tamaño de archivo**: Límites configurables
+- ✅ **Contenido mínimo**: Validación de texto suficiente
+- ✅ **Archivo requerido**: Control de carga obligatoria
+
 
 ### **Estructura del Proyecto:**
 ```
