@@ -8,4 +8,7 @@ urlpatterns = [
     path('comparar/', views.comparar_modelos, name='comparar_modelos'),
     path('analizar-con-modelo/', views.analizar_texto_con_modelo, name='analizar_texto_con_modelo'),
     path('info-modelos/', views.info_modelos, name='info_modelos'),
+    # Nuevas URLs para archivos
+    path('analizar-archivo/', views.analizar_archivo, name='analizar_archivo'),
+    path('comparar-archivo/', views.comparar_modelos_archivo, name='comparar_modelos_archivo'),
 ]
