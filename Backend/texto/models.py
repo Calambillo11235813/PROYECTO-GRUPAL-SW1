@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+User = get_user_model()  # ← Esto apuntará a CustomUser
 
 class AnalisisTexto(models.Model):
     """Modelo para almacenar los análisis de texto realizados."""
@@ -14,59 +17,26 @@ class AnalisisTexto(models.Model):
         ('ARCHIVO', 'Archivo subido'),
     ]
     
-    # Campos existentes
-    texto = models.TextField(verbose_name="Texto analizado")
-    resultado_prediccion = models.CharField(
-        max_length=10, 
-        choices=ORIGEN_CHOICES,
-        verbose_name="Resultado de predicción"
-    )
-    probabilidad_ia = models.FloatField(verbose_name="Probabilidad IA (%)")
-    probabilidad_humano = models.FloatField(verbose_name="Probabilidad Humano (%)")
-    fecha_analisis = models.DateTimeField(default=timezone.now, verbose_name="Fecha de análisis")
-    usuario = models.ForeignKey(
-        'usuario.Usuario', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        verbose_name="Usuario que realizó el análisis"
-    )
+    # Campos existentes...
+    texto_original = models.TextField()
+    prediccion = models.CharField(max_length=10, choices=ORIGEN_CHOICES)  # ← Este campo existe
+    probabilidad_ia = models.FloatField()
+    probabilidad_humano = models.FloatField()
+    confianza = models.CharField(max_length=10)
+    modelo_utilizado = models.CharField(max_length=50)
+    tipo_entrada = models.CharField(max_length=10, choices=TIPO_ENTRADA_CHOICES, default='TEXTO')
+    fecha_analisis = models.DateTimeField(default=timezone.now)
     
-    # Nuevos campos para archivos
-    tipo_entrada = models.CharField(
-        max_length=10, 
-        choices=TIPO_ENTRADA_CHOICES, 
-        default='TEXTO',
-        verbose_name="Tipo de entrada"
-    )
-    nombre_archivo = models.CharField(
-        max_length=255, 
-        blank=True, 
-        null=True,
-        verbose_name="Nombre del archivo"
-    )
-    tamano_archivo = models.IntegerField(
-        blank=True, 
-        null=True,
-        verbose_name="Tamaño del archivo (en bytes)"
-    )  
-    tipo_archivo = models.CharField(
-        max_length=10, 
-        blank=True, 
-        null=True,
-        verbose_name="Tipo de archivo"
-    )  
+    # NUEVO: Asociar con usuario
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     
     class Meta:
-        db_table = 'analisis_texto'
+        ordering = ['-fecha_analisis']
         verbose_name = 'Análisis de Texto'
         verbose_name_plural = 'Análisis de Textos'
-        ordering = ['-fecha_analisis']
     
     def __str__(self):
-        if self.tipo_entrada == 'ARCHIVO':
-            return f"Análisis de {self.nombre_archivo} - {self.resultado_prediccion}"
-        return f"Análisis de texto - {self.resultado_prediccion}"
+        return f"Análisis {self.id} - {self.prediccion} ({self.fecha_analisis})"
 
 class ArchivoAnalisis(models.Model):
     """Modelo para almacenar metadatos de archivos analizados"""
