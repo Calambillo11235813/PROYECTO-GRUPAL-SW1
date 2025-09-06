@@ -7,30 +7,33 @@ from .predictor import get_predictor
 from .models import AnalisisTexto, ArchivoAnalisis
 from .file_processor import FileProcessor
 import hashlib
+from django.utils import timezone
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def calcular_confianza(probabilidad_ia, probabilidad_humano):
+    """Calcula el nivel de confianza basado en las probabilidades"""
+    max_prob = max(probabilidad_ia, probabilidad_humano)
+    if max_prob >= 80:
+        return "ALTA"
+    elif max_prob >= 60:
+        return "MEDIA"
+    else:
+        return "BAJA"
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def analizar_texto(request):
     """
     Endpoint para analizar un texto y determinar si fue generado por IA o por un humano.
-    
-    Parámetros esperados (JSON):
-    - texto: String con el texto a analizar
-    
-    Respuesta (JSON):
-    - prediccion: "IA" o "Humano"
-    - probabilidad_ia: Porcentaje de probabilidad de que sea IA
-    - probabilidad_humano: Porcentaje de probabilidad de que sea humano
-    - confianza: Nivel de confianza general de la predicción
     """
     try:
         # Parsear el cuerpo de la solicitud
         data = json.loads(request.body)
         texto = data.get('texto', '')
+        modelo_tipo = data.get('modelo', 'B')  # Modelo B por defecto
         
         if not texto:
             return JsonResponse({
@@ -38,24 +41,42 @@ def analizar_texto(request):
             }, status=400)
         
         # Obtener predictor y realizar predicción
-        predictor = get_predictor()
+        predictor = get_predictor(modelo_tipo)
+        if predictor is None:
+            return JsonResponse({
+                'error': f'No se pudo cargar el modelo {modelo_tipo}'
+            }, status=500)
+            
         resultado = predictor.predict(texto)
         
         # Verificar si hubo error en la predicción
         if 'error' in resultado:
             return JsonResponse({'error': resultado['error']}, status=500)
         
-        # Almacenar el análisis en la base de datos
-        analisis = AnalisisTexto(
-            texto=texto[:500],  # Almacenar solo los primeros 500 caracteres para evitar datos excesivos
-            resultado_prediccion=resultado['prediccion'],
-            probabilidad_ia=resultado['probabilidad_ia'],
-            probabilidad_humano=resultado['probabilidad_humano'],
-            # usuario se asignaría si el sistema tiene autenticación
+        # Calcular confianza
+        confianza = calcular_confianza(
+            resultado['probabilidad_ia'], 
+            resultado['probabilidad_humano']
         )
-        analisis.save()
         
-        # Devolver resultado
+        # CORREGIDO: Usar campos correctos del modelo
+        analisis = AnalisisTexto.objects.create(
+            texto_original=texto,                           # ✅ Campo correcto
+            prediccion=resultado['prediccion'],             # ✅ Campo correcto
+            probabilidad_ia=resultado['probabilidad_ia'],   # ✅ Campo correcto
+            probabilidad_humano=resultado['probabilidad_humano'], # ✅ Campo correcto
+            confianza=confianza,                           # ✅ Campo correcto
+            modelo_utilizado=modelo_tipo,                  # ✅ Campo correcto
+            tipo_entrada='TEXTO',                          # ✅ Campo correcto
+            fecha_analisis=timezone.now(),                 # ✅ Campo correcto
+            usuario=None  # Se puede asignar si hay autenticación
+        )
+        
+        # Agregar ID del análisis al resultado
+        resultado['analisis_id'] = analisis.id
+        resultado['fecha_analisis'] = analisis.fecha_analisis.isoformat()
+        resultado['confianza'] = confianza
+        
         return JsonResponse(resultado)
         
     except json.JSONDecodeError:
@@ -70,12 +91,21 @@ def estado_servicio(request):
     Endpoint para verificar si el servicio de análisis está funcionando.
     """
     try:
-        # Intentar obtener el predictor para verificar que el modelo esté cargado
-        predictor = get_predictor()
+        # Intentar obtener ambos predictores
+        predictor_b = get_predictor('B')
+        predictor_n = get_predictor('N')
+        
+        estado_b = predictor_b is not None
+        estado_n = predictor_n is not None
+        
         return JsonResponse({
             'estado': 'online',
             'mensaje': 'El servicio de análisis de texto está funcionando correctamente',
-            'modelo': 'BERT multilingüe'
+            'modelos': {
+                'B': 'Disponible' if estado_b else 'Error',
+                'N': 'Disponible' if estado_n else 'Error'
+            },
+            'modelo_por_defecto': 'B'
         })
     except Exception as e:
         return JsonResponse({
@@ -88,16 +118,6 @@ def estado_servicio(request):
 def comparar_modelos(request):
     """
     Endpoint para comparar la predicción de ambos modelos en el mismo texto.
-    
-    Parámetros esperados (JSON):
-    - texto: String con el texto a analizar
-    
-    Respuesta (JSON):
-    - texto_analizado: Texto que se analizó
-    - modelo_N: Resultado del modelo principal
-    - modelo_B: Resultado del modelo experimental
-    - diferencia_probabilidad: Diferencia entre las predicciones
-    - consenso: Si ambos modelos coinciden en la predicción
     """
     try:
         # Parsear el cuerpo de la solicitud
@@ -113,6 +133,11 @@ def comparar_modelos(request):
         predictor_N = get_predictor('N')
         predictor_B = get_predictor('B')
         
+        if predictor_N is None or predictor_B is None:
+            return JsonResponse({
+                'error': 'No se pudieron cargar ambos modelos'
+            }, status=500)
+        
         # Realizar predicciones con ambos modelos
         resultado_N = predictor_N.predict(texto)
         resultado_B = predictor_B.predict(texto)
@@ -127,18 +152,27 @@ def comparar_modelos(request):
         diff_probabilidad = abs(resultado_N['probabilidad_ia'] - resultado_B['probabilidad_ia'])
         consenso = resultado_N['prediccion'] == resultado_B['prediccion']
         
-        # Almacenar análisis comparativo en la base de datos
+        # Promedio de probabilidades para guardar
+        prob_ia_promedio = (resultado_N['probabilidad_ia'] + resultado_B['probabilidad_ia']) / 2
+        prob_humano_promedio = (resultado_N['probabilidad_humano'] + resultado_B['probabilidad_humano']) / 2
+        
+        confianza_promedio = calcular_confianza(prob_ia_promedio, prob_humano_promedio)
+        
+        # CORREGIDO: Almacenar análisis comparativo
         try:
-            analisis = AnalisisTexto(
-                texto=texto[:500],
-                resultado_prediccion=f"N:{resultado_N['prediccion']}, B:{resultado_B['prediccion']}",
-                probabilidad_ia=(resultado_N['probabilidad_ia'] + resultado_B['probabilidad_ia']) / 2,
-                probabilidad_humano=(resultado_N['probabilidad_humano'] + resultado_B['probabilidad_humano']) / 2,
+            analisis = AnalisisTexto.objects.create(
+                texto_original=texto,                                    # ✅ Campo correcto
+                prediccion=f"N:{resultado_N['prediccion']}, B:{resultado_B['prediccion']}", # ✅ Campo correcto
+                probabilidad_ia=prob_ia_promedio,                      # ✅ Campo correcto
+                probabilidad_humano=prob_humano_promedio,               # ✅ Campo correcto
+                confianza=confianza_promedio,                           # ✅ Campo correcto
+                modelo_utilizado='COMPARACION',                         # ✅ Campo correcto
+                tipo_entrada='TEXTO',                                   # ✅ Campo correcto
+                fecha_analisis=timezone.now(),                          # ✅ Campo correcto
+                usuario=None
             )
-            analisis.save()
         except Exception as e:
             logger.error(f"Error al guardar el análisis comparativo: {str(e)}")
-            # No retornar error aquí, solo loguearlo
         
         # Preparar respuesta comparativa
         response_data = {
@@ -152,7 +186,8 @@ def comparar_modelos(request):
                 else 'Revisar manualmente' if not consenso 
                 else 'Confianza media'
             ),
-            'timestamp': json.loads(json.dumps({}))  # Para timestamp si es necesario
+            'analisis_id': analisis.id if 'analisis' in locals() else None,
+            'fecha_analisis': timezone.now().isoformat()
         }
         
         return JsonResponse(response_data)
@@ -162,84 +197,6 @@ def comparar_modelos(request):
     except Exception as e:
         logger.error(f"Error en comparar_modelos: {str(e)}")
         return JsonResponse({'error': f'Error interno: {str(e)}'}, status=500)
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def analizar_texto_con_modelo(request):
-    """
-    Endpoint para analizar un texto con un modelo específico.
-    
-    Parámetros esperados (JSON):
-    - texto: String con el texto a analizar
-    - modelo: 'N' o 'B' (opcional, por defecto 'N')
-    """
-    try:
-        # Parsear el cuerpo de la solicitud
-        data = json.loads(request.body)
-        texto = data.get('texto', '')
-        modelo_tipo = data.get('modelo', 'N')
-        
-        if not texto:
-            return JsonResponse({
-                'error': 'El texto no puede estar vacío'
-            }, status=400)
-            
-        if modelo_tipo not in ['N', 'B']:
-            return JsonResponse({
-                'error': 'Tipo de modelo debe ser "N" o "B"'
-            }, status=400)
-        
-        # Obtener predictor específico
-        predictor = get_predictor(modelo_tipo)
-        resultado = predictor.predict(texto)
-        
-        # Verificar si hubo error en la predicción
-        if 'error' in resultado:
-            return JsonResponse({'error': resultado['error']}, status=500)
-        
-        # Almacenar el análisis en la base de datos
-        analisis = AnalisisTexto(
-            texto=texto[:500],
-            resultado_prediccion=f"{modelo_tipo}:{resultado['prediccion']}",
-            probabilidad_ia=resultado['probabilidad_ia'],
-            probabilidad_humano=resultado['probabilidad_humano'],
-        )
-        analisis.save()
-        
-        # Devolver resultado
-        return JsonResponse(resultado)
-        
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Formato JSON inválido'}, status=400)
-    except Exception as e:
-        logger.error(f"Error en analizar_texto_con_modelo: {str(e)}")
-        return JsonResponse({'error': f'Error interno: {str(e)}'}, status=500)
-
-@require_http_methods(["GET"])
-def info_modelos(request):
-    """
-    Endpoint para obtener información sobre los modelos disponibles.
-    """
-    try:
-        from .predictor import get_available_models
-        
-        modelos_info = {}
-        for model_type in get_available_models():
-            try:
-                predictor = get_predictor(model_type)
-                modelos_info[model_type] = predictor.get_model_info()
-            except Exception as e:
-                modelos_info[model_type] = {'error': str(e)}
-        
-        return JsonResponse({
-            'modelos_disponibles': modelos_info,
-            'modelo_por_defecto': 'N'
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'error': f'Error al obtener información de modelos: {str(e)}'
-        }, status=500)
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -285,7 +242,13 @@ def analizar_archivo(request):
         
         # Realizar predicción
         predictor = get_predictor(modelo_seleccionado)
-        resultado_dict = predictor.predict(texto_extraido)  # CORREGIDO: cambio de predecir a predict
+        if predictor is None:
+            return JsonResponse({
+                'error': f'No se pudo cargar el modelo {modelo_seleccionado}',
+                'codigo': 'ERROR_MODELO'
+            }, status=500)
+            
+        resultado_dict = predictor.predict(texto_extraido)
         
         # Verificar si hubo error en la predicción
         if 'error' in resultado_dict:
@@ -298,6 +261,7 @@ def analizar_archivo(request):
         resultado = resultado_dict['prediccion']
         probabilidad_ia = resultado_dict['probabilidad_ia']
         probabilidad_humano = resultado_dict['probabilidad_humano']
+        confianza = calcular_confianza(probabilidad_ia, probabilidad_humano)
         
         # Calcular hash del archivo
         archivo.seek(0)
@@ -307,28 +271,32 @@ def analizar_archivo(request):
         # Obtener información del archivo
         file_extension = archivo.name.split('.')[-1].lower()
         
-        # Guardar análisis en base de datos
+        # CORREGIDO: Guardar análisis con campos correctos
         analisis = AnalisisTexto.objects.create(
-            texto=texto_extraido,
-            resultado_prediccion=resultado,
-            probabilidad_ia=probabilidad_ia,
-            probabilidad_humano=probabilidad_humano,
-            tipo_entrada='ARCHIVO',
-            nombre_archivo=archivo.name,
-            tamano_archivo=archivo.size,
-            tipo_archivo=f'.{file_extension}'
+            texto_original=texto_extraido,        # ✅ Campo correcto
+            prediccion=resultado,                 # ✅ Campo correcto
+            probabilidad_ia=probabilidad_ia,      # ✅ Campo correcto
+            probabilidad_humano=probabilidad_humano, # ✅ Campo correcto
+            confianza=confianza,                  # ✅ Campo correcto
+            modelo_utilizado=modelo_seleccionado, # ✅ Campo correcto
+            tipo_entrada='ARCHIVO',               # ✅ Campo correcto
+            fecha_analisis=timezone.now(),        # ✅ Campo correcto
+            usuario=None
         )
         
         # Guardar información adicional del archivo
         ArchivoAnalisis.objects.create(
             analisis=analisis,
-            hash_archivo=file_hash
+            ruta_archivo_original=archivo.name,   # ✅ Campo correcto
+            hash_archivo=file_hash,               # ✅ Campo correcto
+            fecha_subida=timezone.now()           # ✅ Campo correcto
         )
         
         return JsonResponse({
             'resultado': resultado,
-            'probabilidad_ia': round(probabilidad_ia, 4),
-            'probabilidad_humano': round(probabilidad_humano, 4),
+            'probabilidad_ia': round(probabilidad_ia, 2),
+            'probabilidad_humano': round(probabilidad_humano, 2),
+            'confianza': confianza,
             'archivo_info': {
                 'nombre': archivo.name,
                 'tamano': archivo.size,
@@ -384,8 +352,14 @@ def comparar_modelos_archivo(request):
         predictor_b = get_predictor('B')
         predictor_n = get_predictor('N')
         
-        resultado_dict_b = predictor_b.predict(texto_extraido)  # CORREGIDO: cambio de predecir a predict
-        resultado_dict_n = predictor_n.predict(texto_extraido)  # CORREGIDO: cambio de predecir a predict
+        if predictor_b is None or predictor_n is None:
+            return JsonResponse({
+                'error': 'No se pudieron cargar ambos modelos',
+                'codigo': 'ERROR_MODELOS'
+            }, status=500)
+        
+        resultado_dict_b = predictor_b.predict(texto_extraido)
+        resultado_dict_n = predictor_n.predict(texto_extraido)
         
         # Verificar errores
         if 'error' in resultado_dict_b:
@@ -409,6 +383,8 @@ def comparar_modelos_archivo(request):
         prob_ia_n = resultado_dict_n['probabilidad_ia']
         prob_humano_n = resultado_dict_n['probabilidad_humano']
         
+        consenso = resultado_b == resultado_n
+        
         return JsonResponse({
             'archivo_info': {
                 'nombre': archivo.name,
@@ -417,15 +393,18 @@ def comparar_modelos_archivo(request):
             },
             'modelo_b': {
                 'resultado': resultado_b,
-                'probabilidad_ia': round(prob_ia_b, 4),
-                'probabilidad_humano': round(prob_humano_b, 4)
+                'probabilidad_ia': round(prob_ia_b, 2),
+                'probabilidad_humano': round(prob_humano_b, 2),
+                'confianza': calcular_confianza(prob_ia_b, prob_humano_b)
             },
             'modelo_n': {
                 'resultado': resultado_n,
-                'probabilidad_ia': round(prob_ia_n, 4),
-                'probabilidad_humano': round(prob_humano_n, 4)
+                'probabilidad_ia': round(prob_ia_n, 2),
+                'probabilidad_humano': round(prob_humano_n, 2),
+                'confianza': calcular_confianza(prob_ia_n, prob_humano_n)
             },
-            'consenso': resultado_b if resultado_b == resultado_n else 'DISCREPANCIA',
+            'consenso': 'SI' if consenso else 'NO',
+            'resultado_consenso': resultado_b if consenso else 'DISCREPANCIA',
             'texto_preview': texto_extraido[:200] + "..." if len(texto_extraido) > 200 else texto_extraido
         })
         
@@ -434,4 +413,33 @@ def comparar_modelos_archivo(request):
         return JsonResponse({
             'error': f'Error interno del servidor: {str(e)}',
             'codigo': 'ERROR_INTERNO'
+        }, status=500)
+
+@require_http_methods(["GET"])
+def info_modelos(request):
+    """
+    Endpoint para obtener información sobre los modelos disponibles.
+    """
+    try:
+        from .predictor import get_available_models
+        
+        modelos_info = {}
+        for model_type in get_available_models():
+            try:
+                predictor = get_predictor(model_type)
+                if predictor:
+                    modelos_info[model_type] = predictor.get_model_info()
+                else:
+                    modelos_info[model_type] = {'error': 'No se pudo cargar el modelo'}
+            except Exception as e:
+                modelos_info[model_type] = {'error': str(e)}
+        
+        return JsonResponse({
+            'modelos_disponibles': modelos_info,
+            'modelo_por_defecto': 'B'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error al obtener información de modelos: {str(e)}'
         }, status=500)

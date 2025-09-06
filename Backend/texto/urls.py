@@ -2,13 +2,21 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Análisis de texto directo
     path('analizar/', views.analizar_texto, name='analizar_texto'),
+    
+    # Estado del servicio
     path('estado/', views.estado_servicio, name='estado_servicio'),
-    # Nuevas rutas para manejo de modelos
+    
+    # Comparación de modelos
     path('comparar/', views.comparar_modelos, name='comparar_modelos'),
-    path('analizar-con-modelo/', views.analizar_texto_con_modelo, name='analizar_texto_con_modelo'),
-    path('info-modelos/', views.info_modelos, name='info_modelos'),
-    # Nuevas URLs para archivos
+    
+    # Análisis de archivos
     path('analizar-archivo/', views.analizar_archivo, name='analizar_archivo'),
+    
+    # Comparación de modelos con archivo
     path('comparar-archivo/', views.comparar_modelos_archivo, name='comparar_modelos_archivo'),
+    
+    # Información de modelos disponibles
+    path('info-modelos/', views.info_modelos, name='info_modelos'),
 ]
