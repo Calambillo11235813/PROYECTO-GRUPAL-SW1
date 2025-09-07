@@ -83,23 +83,6 @@
             }
         });
 
-        function displayResult(data) {
-            const resultDiv = document.getElementById('result');
-            const isReal = data.result && data.result.toUpperCase() === 'REAL';
-            document.getElementById('resultStatus').textContent = isReal ? 'Voz Real' : 'Posible Falsificación';
-            document.getElementById('resultStatus').className = isReal ? 'text-success' : 'text-danger';
-            document.getElementById('resultProbability').textContent = (data.probability * 100).toFixed(2) + '%';
-
-            const audioPlayer = document.getElementById('audioPlayer');
-            audioPlayer.src = data.file;
-
-             
-            if (data.spectrogram) {
-                document.getElementById('resultSpectrogram').src = data.spectrogram;
-            }
-
-            resultDiv.style.display = 'block';
-        }
 
         async function loadHistory() {
             try {
@@ -116,7 +99,7 @@
                         <div class="d-flex w-100 justify-content-between">
                             <h5 class="mb-1">${item.original_filename || item.file.split('/').pop()}</h5>
                             <small class="text-${item.result === 'real' ? 'success' : 'danger'}">
-                                ${item.result === 'real' ? 'Real' : 'Fake'} (${(item.probability * 100).toFixed(2)}%)
+                                ${item.result === 'real' ? 'Voz Auténtica' : 'Posible IA'} (${(item.probability * 100).toFixed(2)}%)
                             </small>
                         </div>
                         <small>${new Date(item.created_at).toLocaleString()}</small>
