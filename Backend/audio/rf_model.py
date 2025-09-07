@@ -282,7 +282,7 @@ class RFAudioDetector:
                                    if p['class'] == 'IA' and p['probability'] >= self.ia_thresh_seg) / len(predictions)
             
             # Tomar decisión final
-            if avg_prob >= self.ia_thresh_audio or pct_above_threshold >= self.pct_segments:
+            if avg_prob >= self.ia_thresh_audio and pct_above_threshold >= self.pct_segments:
                 result = 'IA'
                 probability = avg_prob
             else:
