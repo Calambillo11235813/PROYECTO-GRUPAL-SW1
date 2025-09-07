@@ -26,8 +26,8 @@ def verificar_autenticidad(path_audio):
             print(f"Error: {result.get('message', 'Error desconocido')}")
             return "error", 0.5
         
-        # Devolver el resultado en mayúsculas para consistencia con el frontend
-        return result['result'].upper(), result['probability']
+        # Devolver el resultado en minúsculas para consistencia con el frontend
+        return result['result'].lower(), result['probability']
         
     except Exception as e:
         print(f"Error al procesar el audio: {str(e)}")
