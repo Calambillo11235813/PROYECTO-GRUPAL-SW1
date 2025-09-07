@@ -85,8 +85,9 @@
 
         function displayResult(data) {
             const resultDiv = document.getElementById('result');
-            document.getElementById('resultStatus').textContent = data.result === 'real' ? 'Voz Real' : 'Posible Falsificación';
-            document.getElementById('resultStatus').className = data.result === 'real' ? 'text-success' : 'text-danger';
+            const isReal = data.result && data.result.toUpperCase() === 'REAL';
+            document.getElementById('resultStatus').textContent = isReal ? 'Voz Real' : 'Posible Falsificación';
+            document.getElementById('resultStatus').className = isReal ? 'text-success' : 'text-danger';
             document.getElementById('resultProbability').textContent = (data.probability * 100).toFixed(2) + '%';
 
             const audioPlayer = document.getElementById('audioPlayer');
@@ -170,8 +171,9 @@
             const downloadBtn = document.getElementById('downloadCertBtn');
 
             // Set the result data
-            statusSpan.textContent = data.result === 'real' ? 'Voz Auténtica' : 'Posible IA';
-            statusSpan.className = data.result === 'real' ? 'text-success fw-bold' : 'text-danger fw-bold';
+            const isReal = data.result && data.result.toUpperCase() === 'REAL';
+            statusSpan.textContent = isReal ? 'Voz Auténtica' : 'Posible IA';
+            statusSpan.className = isReal ? 'text-success fw-bold' : 'text-danger fw-bold';
             
             const probability = (data.probability * 100).toFixed(2);
             probabilitySpan.textContent = `${probability}%`;
