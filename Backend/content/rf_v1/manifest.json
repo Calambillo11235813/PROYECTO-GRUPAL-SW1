@@ -1,0 +1,10 @@
+{
+  "version": "rf_v1_MVP",
+  "sr": 16000,
+  "win_s": 3.0,
+  "hop_s": 1.5,
+  "ia_thresh_seg": 0.6,
+  "ia_thresh_audio": 0.6,
+  "pct_segments": 0.3,
+  "features": "MFCC+delta+delta2, centroid, flatness, zcr, flux, rms, rolloff"
+}
