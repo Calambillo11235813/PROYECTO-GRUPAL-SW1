@@ -59,7 +59,7 @@ def generar_certificado_pdf(audio_upload):
     
     # Información del archivo
     elements.append(Paragraph(f"<b>Archivo analizado:</b> {audio_upload.original_filename}", styles['BodyText']))
-    elements.append(Paragraph(f"<b>Fecha de análisis:</b> {audio_upload.uploaded_at.strftime('%d/%m/%Y %H:%M')}", styles['BodyText']))
+    elements.append(Paragraph(f"<b>Fecha de análisis:</b> {audio_upload.created_at.strftime('%d/%m/%Y %H:%M')}", styles['BodyText']))
     
     # Resultado del análisis
     resultado = "AUTÉNTICO" if audio_upload.result == 'real' else "MANIPULADO CON IA"

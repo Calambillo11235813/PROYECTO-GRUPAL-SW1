@@ -53,8 +53,13 @@ class AudioUploadView(APIView):
                 # Verificar autenticidad del audio
                 result, probability = verificar_autenticidad(audio_path)
                 
-                # Generar espectrograma
-                spectrogram_path = generar_espectrograma(audio_path, str(audio_upload.id))
+                # Generar espectrograma con el nombre original del archivo
+                original_filename = audio_upload.original_filename or os.path.basename(audio_upload.file.name)
+                spectrogram_path = generar_espectrograma(
+                    audio_path, 
+                    file_id=str(audio_upload.id),
+                    original_filename=original_filename
+                )
                 
                 # Actualizar el modelo con los resultados
                 audio_upload.result = result
@@ -98,8 +103,8 @@ class AudioUploadView(APIView):
 
     def get(self, request, *args, **kwargs):
         # Obtener el historial de análisis
-        uploads = AudioUpload.objects.all().order_by('-uploaded_at')
-        serializer = AudioUploadSerializer(uploads, many=True)
+        uploads = AudioUpload.objects.all().order_by('-created_at')
+        serializer = AudioUploadSerializer(uploads, many=True, context={'request': request})
         return Response(serializer.data)
 
 

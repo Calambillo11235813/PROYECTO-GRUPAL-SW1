@@ -1,43 +1,34 @@
-#backend/audio/ia_model.py
-import torchaudio
-from speechbrain.pretrained import SpeakerRecognition
+import os
+from .rf_model import load_rf_detector
 
-# backend/audio/ia_model.py
-import random
+# Cargar el modelo personalizado de Random Forest
+rf_detector = load_rf_detector()
 
 def verificar_autenticidad(path_audio):
     """
-    Dummy detector temporal:
-    Devuelve 'real' o 'fake' con una probabilidad aleatoria.
+    Analiza un archivo de audio para determinar si es real o sintético
+    utilizando un modelo personalizado de Random Forest.
+    
+    Args:
+        path_audio (str): Ruta al archivo de audio a analizar
+        
+    Returns:
+        tuple: (resultado, probabilidad) donde:
+            - resultado: 'real', 'fake' o 'error'
+            - probabilidad: float entre 0 y 1 que indica la confianza
     """
-    prob_fake = random.random()
-    if prob_fake > 0.5:
-        return "fake", prob_fake
-    else:
-        return "real", 1 - prob_fake
-
-
-
-#codigo ismael
-# #backen
-# import torchaudio
-# from speechbrain.pretrained import SpeakerRecognition
-
-# # Cargar modelo anti-spoofing (una sola vez)
-# model = SpeakerRecognition.from_hparams(
-#     source="speechbrain/anti-spoofing",
-#     savedir="pretrained_model"
-# )
-
-# def verificar_autenticidad(path_audio):
-#     signal, fs = torchaudio.load(path_audio)
-#     score = model.classify_batch(signal)
-
-#     # score es un tensor con [prob_real, prob_fake]
-#     prob_real = float(score[0][0])
-#     prob_fake = float(score[0][1])
-
-#     if prob_real > prob_fake:
-#         return "real", prob_real
-#     else:
-#         return "fake", prob_fake
+    try:
+        # Procesar el audio con el detector RF
+        result = rf_detector.process_audio(path_audio)
+        
+        # Si hubo un error, devolver el mensaje
+        if result['result'] == 'error':
+            print(f"Error: {result.get('message', 'Error desconocido')}")
+            return "error", 0.5
+        
+        # Devolver el resultado y la probabilidad
+        return result['result'], result['probability']
+        
+    except Exception as e:
+        print(f"Error al procesar el audio: {str(e)}")
+        return "error", 0.5
