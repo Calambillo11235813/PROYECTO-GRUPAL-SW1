@@ -150,159 +150,113 @@ class RFAudioDetector:
         except Exception as e:
             print(f"Advertencia: Error al extraer características: {str(e)}")
             return np.zeros(144)
-    
-    def process_audio(self, audio_path: str) -> Dict[str, Any]:
+
+    def process_audio(self, audio_path: str, debug: bool = False) -> Dict[str, Any]:
         """
-        Procesa un archivo de audio y devuelve las predicciones.
-        
+        Procesa un archivo de audio y devuelve las predicciones más confiables.
+
         Args:
             audio_path: Ruta al archivo de audio
-            
+            debug: Si True imprime probabilidades por segmento
+
         Returns:
-            Dict con los resultados del análisis
+            Dict con el resultado final y detalle por segmento
         """
         try:
-            # Verificar si el archivo existe
             if not os.path.exists(audio_path):
                 return {
                     'result': 'error',
                     'probability': 0.5,
                     'message': f'El archivo {audio_path} no existe'
                 }
-            
-            # Cargar el audio
-            try:
-                y, sr = librosa.load(audio_path, sr=self.sr, mono=True)
-            except Exception as e:
-                return {
-                    'result': 'error',
-                    'probability': 0.5,
-                    'message': f'Error al cargar el archivo de audio: {str(e)}'
-                }
-            
-            # Verificar duración mínima
+
+            y, sr = librosa.load(audio_path, sr=self.sr, mono=True)
+
             if len(y) < self.min_audio_length:
                 return {
                     'result': 'error',
                     'probability': 0.5,
-                    'message': f'Audio demasiado corto. Mínimo {self.min_audio_length/self.sr:.1f} segundos requeridos'
+                    'message': f'Audio demasiado corto. Mínimo {self.min_audio_length/self.sr:.1f} s requerido'
                 }
-            
-            # Asegurar que la longitud del audio sea múltiplo del hop_length
+
+            # Segmentación
             segment_length = int(self.window_size * sr)
             hop_length = int(self.hop_size * sr)
-            
-            # Asegurar que tengamos al menos un segmento completo
-            if len(y) < segment_length:
-                # Si el audio es más corto que el tamaño de ventana, usar padding
-                padding = np.zeros(segment_length - len(y))
-                y = np.concatenate([y, padding])
-            
-            # Dividir en segmentos
+
             segments = []
             for i in range(0, len(y) - segment_length + 1, hop_length):
-                segment = y[i:i + segment_length]
-                segments.append(segment)
-            
-            # Si no hay segmentos completos, usar el audio completo con padding si es necesario
+                segments.append(y[i:i+segment_length])
+
             if not segments:
-                if len(y) < segment_length:
-                    padding = np.zeros(segment_length - len(y))
-                    y = np.concatenate([y, padding])
+                # Si el audio es más corto que la ventana, usar audio completo
                 segments = [y[:segment_length]]
-            
-            # Procesar cada segmento
+
             predictions = []
+
             for i, segment in enumerate(segments):
-                try:
-                    # Extraer características
-                    features = self._extract_features(segment, sr)
-                    
-                    # Verificar longitud de características
-                    if len(features) == 0:
-                        print(f"Advertencia: No se pudieron extraer características para el segmento {i+1}")
-                        continue
-                    
-                    # Convertir a array 2D (1 muestra, n características)
-                    features = features.reshape(1, -1)
-                    
-                    # Hacer predicción (suprimir advertencias de feature names)
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        proba = self.model.predict_proba(features)[0]
-                    
-                    # Manejar diferentes formatos de salida del modelo
-                    if hasattr(self.model, 'classes_'):
-                        class_idx = np.argmax(proba)
-                        class_name = self.model.classes_[class_idx]
-                        prob = float(proba[class_idx])
-                    else:
-                        # Asumir que la segunda clase es 'IA' (índice 1)
-                        prob = float(proba[1] if len(proba) > 1 else proba[0])
-                        class_name = 'IA' if prob >= self.ia_thresh_seg else 'REAL'
-                    
-                    # Guardar predicción
-                    predictions.append({
-                        'class': class_name,
-                        'probability': prob,
-                        'segment': i + 1
-                    })
-                    
-                except Exception as e:
-                    print(f"Error en segmento {i+1}: {str(e)}")
+                features = self._extract_features(segment, sr)
+                if len(features) == 0:
                     continue
-            
-            # Si no hay predicciones, devolver error
+                features = features.reshape(1, -1)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    proba = self.model.predict_proba(features)[0]
+
+                if hasattr(self.model, 'classes_'):
+                    class_idx = np.argmax(proba)
+                    class_name = self.model.classes_[class_idx]
+                    prob = float(proba[class_idx])
+                else:
+                    prob = float(proba[1] if len(proba) > 1 else proba[0])
+                    class_name = 'IA' if prob >= self.ia_thresh_seg else 'REAL'
+
+                predictions.append({
+                    'class': class_name,
+                    'probability': prob,
+                    'segment': i+1
+                })
+
             if not predictions:
                 return {
                     'result': 'error',
                     'probability': 0.5,
-                    'message': 'No se pudo realizar ninguna predicción en los segmentos de audio'
+                    'message': 'No se pudo realizar predicción en segmentos'
                 }
-            
-            # Calcular predicción promedio
-            ia_probs = [p['probability'] for p in predictions if p['class'] == 'IA']
-            real_probs = [1 - p['probability'] for p in predictions if p['class'] == 'REAL']
-            
-            if ia_probs and real_probs:
-                avg_prob = (sum(ia_probs) + sum(real_probs)) / (len(ia_probs) + len(real_probs))
-            elif ia_probs:
-                avg_prob = sum(ia_probs) / len(ia_probs)
-            elif real_probs:
-                avg_prob = 1.0 - (sum(real_probs) / len(real_probs))
-            else:
-                return {
-                    'result': 'error',
-                    'probability': 0.5,
-                    'message': 'No se pudieron calcular las probabilidades de los segmentos'
-                }
-            
-            # Calcular porcentaje de segmentos sobre el umbral
-            pct_above_threshold = sum(1 for p in predictions 
-                                   if p['class'] == 'IA' and p['probability'] >= self.ia_thresh_seg) / len(predictions)
-            
-            # Tomar decisión final
-            if avg_prob >= self.ia_thresh_audio and pct_above_threshold >= self.pct_segments:
+
+            # Promedio por clase
+            ia_probs = [p['probability'] for p in predictions if p['class']=='IA']
+            real_probs = [p['probability'] for p in predictions if p['class']=='REAL']
+
+            avg_ia = np.mean(ia_probs) if ia_probs else 0.0
+            avg_real = np.mean(real_probs) if real_probs else 0.0
+
+            pct_ia = len([p for p in predictions if p['class']=='IA' and p['probability']>=self.ia_thresh_seg]) / len(predictions)
+
+            # Decisión final usando AND para reducir falsos positivos
+            if avg_ia >= self.ia_thresh_audio or pct_ia >= self.pct_segments:
                 result = 'IA'
-                probability = avg_prob
+                probability = avg_ia
             else:
                 result = 'REAL'
-                probability = 1.0 - avg_prob
-            
-            # Asegurar que la probabilidad esté en el rango [0, 1]
+                probability = avg_real if avg_real > 0 else 1.0 - avg_ia
+
             probability = max(0.0, min(1.0, probability))
-            
+
+            if debug:
+                print(f"[DEBUG] avg_ia={avg_ia:.3f}, avg_real={avg_real:.3f}, pct_ia={pct_ia:.2f}, result={result}")
+
             return {
                 'result': result,
                 'probability': float(probability),
-                'avg_prob': float(avg_prob),
-                'pct_above_threshold': float(pct_above_threshold),
+                'avg_ia': float(avg_ia),
+                'avg_real': float(avg_real),
+                'pct_ia': float(pct_ia),
                 'num_segments': len(predictions),
                 'segments': predictions,
-                'message': 'Análisis completado correctamente',
+                'message': 'Análisis completado',
                 'model_threshold': self.ia_thresh_audio
             }
-            
+
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
