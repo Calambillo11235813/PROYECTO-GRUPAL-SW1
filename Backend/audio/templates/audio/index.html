@@ -118,7 +118,7 @@
                                 ${item.result === 'real' ? 'Real' : 'Fake'} (${(item.probability * 100).toFixed(2)}%)
                             </small>
                         </div>
-                        <small>${new Date(item.uploaded_at).toLocaleString()}</small>
+                        <small>${new Date(item.created_at).toLocaleString()}</small>
                         <audio src="${item.file}" controls class="w-100 mt-2"></audio>
 
                         <!-- 👇 Mostrar espectrograma -->
