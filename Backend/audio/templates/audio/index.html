@@ -83,22 +83,6 @@
             }
         });
 
-        function displayResult(data) {
-            const resultDiv = document.getElementById('result');
-            document.getElementById('resultStatus').textContent = data.result === 'real' ? 'Voz Real' : 'Posible Falsificación';
-            document.getElementById('resultStatus').className = data.result === 'real' ? 'text-success' : 'text-danger';
-            document.getElementById('resultProbability').textContent = (data.probability * 100).toFixed(2) + '%';
-
-            const audioPlayer = document.getElementById('audioPlayer');
-            audioPlayer.src = data.file;
-
-             
-            if (data.spectrogram) {
-                document.getElementById('resultSpectrogram').src = data.spectrogram;
-            }
-
-            resultDiv.style.display = 'block';
-        }
 
         async function loadHistory() {
             try {
@@ -115,10 +99,10 @@
                         <div class="d-flex w-100 justify-content-between">
                             <h5 class="mb-1">${item.original_filename || item.file.split('/').pop()}</h5>
                             <small class="text-${item.result === 'real' ? 'success' : 'danger'}">
-                                ${item.result === 'real' ? 'Real' : 'Fake'} (${(item.probability * 100).toFixed(2)}%)
+                                ${item.result === 'real' ? 'Voz Auténtica' : 'Posible IA'} (${(item.probability * 100).toFixed(2)}%)
                             </small>
                         </div>
-                        <small>${new Date(item.uploaded_at).toLocaleString()}</small>
+                        <small>${new Date(item.created_at).toLocaleString()}</small>
                         <audio src="${item.file}" controls class="w-100 mt-2"></audio>
 
                         <!-- 👇 Mostrar espectrograma -->
@@ -170,8 +154,9 @@
             const downloadBtn = document.getElementById('downloadCertBtn');
 
             // Set the result data
-            statusSpan.textContent = data.result === 'real' ? 'Voz Auténtica' : 'Posible IA';
-            statusSpan.className = data.result === 'real' ? 'text-success fw-bold' : 'text-danger fw-bold';
+            const isReal = data.result && data.result.toUpperCase() === 'REAL';
+            statusSpan.textContent = isReal ? 'Voz Auténtica' : 'Posible IA';
+            statusSpan.className = isReal ? 'text-success fw-bold' : 'text-danger fw-bold';
             
             const probability = (data.probability * 100).toFixed(2);
             probabilitySpan.textContent = `${probability}%`;
