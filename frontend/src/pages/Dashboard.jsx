@@ -28,7 +28,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 fixed inset-0 overflow-auto">
       {/* Navbar global */}
       <Navbar />
       
