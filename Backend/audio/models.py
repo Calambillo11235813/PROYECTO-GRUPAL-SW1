@@ -2,18 +2,23 @@
 import os
 from django.conf import settings
 from django.db import models
+from django.contrib.auth import get_user_model
 import uuid
+from usuario.models import CustomUser
 
 def ruta_archivo_audio(instance, filename):
-    """Genera una ruta segura para guardar archivos de audio.
+    """Genera una ruta segura para guardar archivos de audio en subcarpetas por usuario.
     
     Args:
         instance: La instancia del modelo AudioUpload
         filename: El nombre original del archivo
         
     Returns:
-        str: Ruta segura para guardar el archivo
+        str: Ruta segura para guardar el archivo en una subcarpeta del usuario
     """
+    # Obtener el ID del usuario o 'anonimo' si no está autenticado
+    user_folder = f"user_{instance.user.id}" if hasattr(instance, 'user') and instance.user else 'anonimo'
+    
     # Si ya hay un archivo y tiene un nombre original, usarlo
     if hasattr(instance, 'original_filename') and instance.original_filename:
         base_name = os.path.basename(instance.original_filename)
@@ -42,10 +47,14 @@ def ruta_archivo_audio(instance, filename):
         instance.original_filename = base_name
         instance._dirty = True
     
-    return os.path.join(settings.RUTA_SUBIDA_AUDIOS, safe_name)
+    # Crear la ruta completa con la subcarpeta del usuario
+    return os.path.join(settings.RUTA_SUBIDA_AUDIOS, user_folder, safe_name)
 
 def ruta_espectrograma(instance, filename):
-    """Genera una ruta segura para guardar espectrogramas manteniendo el nombre original."""
+    """Genera una ruta segura para guardar espectrogramas en subcarpetas por usuario."""
+    # Obtener el ID del usuario o 'anonimo' si no está autenticado
+    user_folder = f"user_{instance.user.id}" if hasattr(instance, 'user') and instance.user else 'anonimo'
+    
     # Usar el nombre del archivo de audio original para el espectrograma
     if hasattr(instance, 'file') and instance.file:
         base_name = os.path.basename(instance.file.name)
@@ -53,9 +62,19 @@ def ruta_espectrograma(instance, filename):
         safe_name = f"espectro_{name}.png"
     else:
         safe_name = f"espectro_{uuid.uuid4().hex}.png"
-    return os.path.join(settings.RUTA_ESPECTROGRAMAS, safe_name)
+    
+    # Crear la ruta completa con la subcarpeta del usuario
+    return os.path.join(settings.RUTA_ESPECTROGRAMAS, user_folder, safe_name)
 
 class AudioUpload(models.Model):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='audio_uploads',
+        verbose_name="Usuario",
+        null=True,
+        blank=True
+    )
     file = models.FileField(
         upload_to=ruta_archivo_audio,
         verbose_name="Archivo de audio",
@@ -135,3 +154,19 @@ def save(self, *args, **kwargs):
 
     def __str__(self):
         return f"{self.original_filename or self.file.name} - {self.result or 'Pendiente'}"
+    
+    def save(self, *args, **kwargs):
+        # Actualizar el contador de análisis del perfil del usuario si existe
+        if self.user and hasattr(self.user, 'userprofile'):
+            self.user.userprofile.total_analyses = self.user.audio_uploads.count()
+            self.user.userprofile.save()
+        super().save(*args, **kwargs)
+        
+    class Meta:
+        verbose_name = "Audio subido"
+        verbose_name_plural = "Audios subidos"
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['user', 'uploaded_at']),
+            models.Index(fields=['result']),
+        ]
