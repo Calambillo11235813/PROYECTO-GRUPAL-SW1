@@ -44,9 +44,9 @@ class RFAudioDetector:
         self.roll_percents = [0.85, 0.95]
         
         # Decision thresholds
-        self.ia_thresh_seg = self.manifest.get('ia_thresh_seg', 0.60)
+        self.ia_thresh_seg = self.manifest.get('ia_thresh_seg', 0.55)
         self.ia_thresh_audio = self.manifest.get('ia_thresh_audio', 0.60)
-        self.pct_segments = self.manifest.get('pct_segments', 0.30)
+        self.pct_segments = self.manifest.get('pct_segments', 0.20)
         
     def _spectral_flux(self, mag: np.ndarray) -> np.ndarray:
         """Compute spectral flux feature."""
@@ -233,17 +233,23 @@ class RFAudioDetector:
             pct_ia = len([p for p in predictions if p['class']=='IA' and p['probability']>=self.ia_thresh_seg]) / len(predictions)
 
             # Decisión final usando AND para reducir falsos positivos
+            # Decisión final usando promedio y % de segmentos
             if avg_ia >= self.ia_thresh_audio or pct_ia >= self.pct_segments:
                 result = 'IA'
                 probability = avg_ia
             else:
                 result = 'REAL'
-                probability = avg_real if avg_real > 0 else 1.0 - avg_ia
+                probability = 1.0 - avg_ia  # Probabilidad complementaria
 
             probability = max(0.0, min(1.0, probability))
 
+            # Mostrar resumen de segmentos
+            print("\n=== Análisis de Segmentos ===")
+            for s in predictions:
+                print(f"Segmento {s.get('segment', 'N/A')}: Prob. IA={s['probability']*100:.1f}% | Clase: {s['class']}")
+            
             if debug:
-                print(f"[DEBUG] avg_ia={avg_ia:.3f}, avg_real={avg_real:.3f}, pct_ia={pct_ia:.2f}, result={result}")
+                print(f"\n[DEBUG] avg_ia={avg_ia:.3f}, avg_real={avg_real:.3f}, pct_ia={pct_ia:.2f}, result={result}")
 
             return {
                 'result': result,
@@ -267,6 +273,8 @@ class RFAudioDetector:
                 'message': f'Error al procesar el audio: {str(e)}',
                 'details': error_details
             }
+
+            
 
 def load_rf_detector():
     """Función de conveniencia para cargar el detector RF."""
