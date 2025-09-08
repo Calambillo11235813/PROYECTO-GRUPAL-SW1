@@ -5,7 +5,6 @@ djangorestframework>=3.14.0
 # Procesamiento de audio (PyTorch CPU)
 torch==2.0.1+cpu
 torchaudio==2.0.2+cpu
-speechbrain>=0.5.14
 librosa>=0.10.0
 soundfile>=0.12.1
 
