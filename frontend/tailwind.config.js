@@ -38,7 +38,18 @@ export default {
             secondary: '#475569',  // slate-600
             muted: '#334155',      // slate-700
           }
-        }
+        },
+        // Permite usar clases como bg-cyber-bg-primary directamente
+        'cyber-bg-primary': '#0a0f1c',
+        'cyber-bg-secondary': '#151b2e',
+        'cyber-bg-card': '#1a1f35',
+        'cyber-text-primary': '#ffffff',
+        'cyber-text-accent': '#00e5ff',
+        'cyber-accent-primary': '#9333ea',
+        'cyber-accent-secondary': '#0891b2',
+        'cyber-error': '#ef4444',
+        'cyber-success': '#10b981',
+        'cyber-border-primary': '#0891b2',
       },
       // Gradientes actualizados
       backgroundImage: {

@@ -56,6 +56,7 @@ def login_user(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_user_profile(request):
     """Obtener perfil del usuario autenticado"""
     try:
@@ -78,3 +79,20 @@ def logout_user(request):
     except Exception as e:
         return Response({'error': 'Token inválido'}, 
                        status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_all_users(request):
+    """Obtener todos los usuarios"""
+    users = CustomUser.objects.all()
+    data = [
+        {
+            'id': user.id,
+            'email': user.email,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
+        for user in users
+    ]
+    return Response(data, status=status.HTTP_200_OK)

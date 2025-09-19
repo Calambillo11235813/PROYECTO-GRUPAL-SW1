@@ -19,8 +19,8 @@ const Navbar = () => {
       name: 'Audio', 
       path: '/audio', 
       icon: '🔊', 
-      isActive: false,  // Cambiar a true cuando implementes este módulo
-      comingSoon: true
+      isActive: true,      // Cambia a true
+      comingSoon: false    // Cambia a false
     },
     { 
       name: 'Código', 
@@ -39,7 +39,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-slate-900/70 backdrop-blur-md border-b border-cyan-500/30 sticky top-0 z-50">
+    <nav className="w-full fixed top-0 left-0 z-50 bg-gradient-to-r from-cyber-bg-primary to-cyber-bg-secondary shadow-lg border-b border-cyber-accent-primary">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo y título */}
