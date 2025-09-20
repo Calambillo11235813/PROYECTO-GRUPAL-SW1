@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('', views.texto_root, name='texto_root'),  # NUEVO ENDPOINT BASE
     # Análisis de texto directo
     path('analizar/', views.analizar_texto, name='analizar_texto'),
     

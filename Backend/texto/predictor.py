@@ -215,23 +215,18 @@ class TextoPredictor:
                 outputs = self.model(**inputs)
                 logits = outputs.logits
                 probabilities = torch.softmax(logits, dim=1)
+                prob_ia = probabilities[0][1].item()  # Probabilidad clase IA
+                prob_humano = probabilities[0][0].item()  # Probabilidad clase Humano
                 predicted_class = torch.argmax(probabilities, dim=1).item()
-                probability = probabilities[0][predicted_class].item()
             
             # Preparar respuesta
-            if predicted_class == 1:  # Asumiendo que 1 = IA, 0 = Humano
-                prediction = "IA"
-                probability_human = 1 - probability
-            else:
-                prediction = "Humano"
-                probability_human = probability
-                probability = 1 - probability_human
+            prediction = "IA" if predicted_class == 1 else "Humano"
             
             return {
                 'prediccion': prediction,
-                'probabilidad_ia': round(probability * 100, 2),
-                'probabilidad_humano': round(probability_human * 100, 2),
-                'confianza': round(max(probability, probability_human) * 100, 2),
+                'probabilidad_ia': round(prob_ia * 100, 2),
+                'probabilidad_humano': round(prob_humano * 100, 2),
+                'confianza': round(max(prob_ia, prob_humano) * 100, 2),
                 'modelo_usado': self.model_type
             }
             
