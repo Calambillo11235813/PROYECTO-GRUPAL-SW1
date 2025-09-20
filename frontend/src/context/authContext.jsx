@@ -127,20 +127,22 @@ export function AuthProvider({ children }) {
   // Acciones
   const login = async (credentials) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
-    
+
     const result = await authService.login(credentials);
-    
+
     if (result.success) {
       dispatch({
         type: AUTH_ACTIONS.LOGIN_SUCCESS,
         payload: { user: result.user }
       });
+      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: { loading: false } });
       return result;
     } else {
       dispatch({
         type: AUTH_ACTIONS.LOGIN_FAILURE,
         payload: { error: result.error }
       });
+      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: { loading: false } });
       return result;
     }
   };

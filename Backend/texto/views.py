@@ -23,6 +23,14 @@ def calcular_confianza(probabilidad_ia, probabilidad_humano):
     else:
         return "BAJA"
 
+def dividir_en_fragmentos(texto, max_palabras=300):
+    palabras = texto.split()
+    fragmentos = []
+    for i in range(0, len(palabras), max_palabras):
+        fragmento = ' '.join(palabras[i:i+max_palabras])
+        fragmentos.append(fragmento)
+    return fragmentos
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def analizar_texto(request):
@@ -240,29 +248,29 @@ def analizar_archivo(request):
         if len(texto_extraido) > 10000:
             texto_extraido = texto_extraido[:10000] + "..."
         
-        # Realizar predicción
-        predictor = get_predictor(modelo_seleccionado)
-        if predictor is None:
+        # Dividir en fragmentos
+        fragmentos = dividir_en_fragmentos(texto_extraido, max_palabras=300)
+        resultados = []
+        for frag in fragmentos:
+            pred = predictor.predict(frag)
+            if 'error' not in pred:
+                resultados.append(pred)
+
+        if not resultados:
             return JsonResponse({
-                'error': f'No se pudo cargar el modelo {modelo_seleccionado}',
-                'codigo': 'ERROR_MODELO'
-            }, status=500)
-            
-        resultado_dict = predictor.predict(texto_extraido)
-        
-        # Verificar si hubo error en la predicción
-        if 'error' in resultado_dict:
-            return JsonResponse({
-                'error': resultado_dict['error'],
+                'error': 'No se pudo analizar ningún fragmento',
                 'codigo': 'ERROR_PREDICCION'
             }, status=500)
-        
-        # Extraer valores del diccionario
-        resultado = resultado_dict['prediccion']
-        probabilidad_ia = resultado_dict['probabilidad_ia']
-        probabilidad_humano = resultado_dict['probabilidad_humano']
-        confianza = calcular_confianza(probabilidad_ia, probabilidad_humano)
-        
+
+        # Calcular consenso
+        num_ia = sum(1 for r in resultados if r['prediccion'] == 'IA')
+        num_humano = sum(1 for r in resultados if r['prediccion'] == 'Humano')
+        total = len(resultados)
+        prob_ia = sum(r['probabilidad_ia'] for r in resultados) / total
+        prob_humano = sum(r['probabilidad_humano'] for r in resultados) / total
+        resultado_final = 'IA' if num_ia > num_humano else 'Humano'
+        confianza = calcular_confianza(prob_ia, prob_humano)
+
         # Calcular hash del archivo
         archivo.seek(0)
         file_hash = hashlib.sha256(archivo.read()).hexdigest()
@@ -274,9 +282,9 @@ def analizar_archivo(request):
         # CORREGIDO: Guardar análisis con campos correctos
         analisis = AnalisisTexto.objects.create(
             texto_original=texto_extraido,        # ✅ Campo correcto
-            prediccion=resultado,                 # ✅ Campo correcto
-            probabilidad_ia=probabilidad_ia,      # ✅ Campo correcto
-            probabilidad_humano=probabilidad_humano, # ✅ Campo correcto
+            prediccion=resultado_final,                 # ✅ Campo correcto
+            probabilidad_ia=prob_ia,      # ✅ Campo correcto
+            probabilidad_humano=prob_humano, # ✅ Campo correcto
             confianza=confianza,                  # ✅ Campo correcto
             modelo_utilizado=modelo_seleccionado, # ✅ Campo correcto
             tipo_entrada='ARCHIVO',               # ✅ Campo correcto
@@ -293,16 +301,20 @@ def analizar_archivo(request):
         )
         
         return JsonResponse({
-            'resultado': resultado,
-            'probabilidad_ia': round(probabilidad_ia, 2),
-            'probabilidad_humano': round(probabilidad_humano, 2),
+            'resultado': resultado_final,
+            'probabilidad_ia': round(prob_ia, 2),
+            'probabilidad_humano': round(prob_humano, 2),
             'confianza': confianza,
+            'fragmentos_analizados': total,
+            'fragmentos_ia': num_ia,
+            'fragmentos_humano': num_humano,
             'archivo_info': {
                 'nombre': archivo.name,
                 'tamano': archivo.size,
                 'tipo': f'.{file_extension}',
                 'texto_extraido_preview': texto_extraido[:200] + "..." if len(texto_extraido) > 200 else texto_extraido
             },
+            'texto_extraido': texto_extraido,
             'analisis_id': analisis.id,
             'modelo_utilizado': modelo_seleccionado,
             'fecha_analisis': analisis.fecha_analisis.isoformat()
@@ -314,6 +326,9 @@ def analizar_archivo(request):
             'error': f'Error interno del servidor: {str(e)}',
             'codigo': 'ERROR_INTERNO'
         }, status=500)
+
+
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -443,3 +458,14 @@ def info_modelos(request):
         return JsonResponse({
             'error': f'Error al obtener información de modelos: {str(e)}'
         }, status=500)
+
+def texto_root(request):
+    """
+    Endpoint base para /api/texto/
+    Retorna información básica del servicio.
+    """
+    return JsonResponse({
+        "status": "ok",
+        "message": "Servicio de análisis de texto disponible",
+        "version": "1.0.0"
+    })

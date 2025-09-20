@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import textAnalysisService from '../../../services/textAnalysisService';
 import FileUploader from './FileUploader';
 import FilePreview from './FilePreview';
-import AnalysisResults from '../TextAnalyzer/AnalysisResults';
+import FileAnalysisResults from './FileAnalysisResults';
 import { Button } from '../../ui/Button';
 
 const FileAnalysis = ({ onAnalysisComplete, modelo = 'B' }) => {
@@ -22,9 +22,6 @@ const FileAnalysis = ({ onAnalysisComplete, modelo = 'B' }) => {
     setAnalysisResult(null);
     setError('');
     setStep(2);
-    
-    // Simular extracción de texto (en un caso real sería una llamada al backend)
-    simulateTextExtraction(file);
   };
 
   // Remover archivo
@@ -36,41 +33,8 @@ const FileAnalysis = ({ onAnalysisComplete, modelo = 'B' }) => {
     setStep(1);
   };
 
-  // Simular extracción de texto (reemplazar con llamada real al backend)
-  const simulateTextExtraction = async (file) => {
-    if (file.type === 'text/plain') {
-      // Para archivos de texto, leer directamente
-      setIsExtracting(true);
-      try {
-        const text = await file.text();
-        setExtractedText(text);
-        console.log('📄 Texto extraído de archivo TXT');
-      } catch (err) {
-        console.error('❌ Error leyendo archivo TXT:', err);
-        setError('Error al leer el archivo de texto');
-      } finally {
-        setIsExtracting(false);
-      }
-    } else {
-      // Para PDF y DOCX, simular procesamiento
-      setIsExtracting(true);
-      setTimeout(() => {
-        const mockText = `Texto extraído del archivo: ${file.name}
 
-Este es un ejemplo de texto que habría sido extraído del archivo ${file.type.includes('pdf') ? 'PDF' : 'Word'}. 
-
-En una implementación real, aquí aparecería el contenido completo del documento procesado por el backend.
-
-El archivo tiene un tamaño de ${(file.size / 1024).toFixed(1)} KB y fue modificado por última vez el ${new Date(file.lastModified).toLocaleDateString()}.
-
-Este texto puede ser analizado por los modelos de IA para determinar si fue generado artificialmente o escrito por un humano.`;
-        
-        setExtractedText(mockText);
-        setIsExtracting(false);
-        console.log('📄 Texto extraído simulado');
-      }, 2000);
-    }
-  };
+  
 
   // Analizar archivo
   const handleAnalyzeFile = async () => {
@@ -81,30 +45,37 @@ Este texto puede ser analizado por los modelos de IA para determinar si fue gene
 
     setError('');
     setIsAnalyzing(true);
+    setIsExtracting(true); // <-- Activa el spinner de extracción
     setAnalysisResult(null);
 
     try {
       console.log(`🔍 Analizando archivo con modelo ${modelo}:`, selectedFile.name);
-      
-      // Opción 1: Analizar archivo directamente
+
+      // Analizar archivo directamente
       const result = await textAnalysisService.analyzeFile(selectedFile, modelo);
-      
-      // Opción 2: Si el backend no soporta archivos, usar texto extraído
-      // const result = await textAnalysisService.analyzeText(extractedText, modelo);
-      
+
       if (result.success) {
         setAnalysisResult(result);
+        if (result.data && result.data.texto_extraido) {
+          setExtractedText(result.data.texto_extraido);
+          console.log('✅ Texto extraído correctamente:', result.data.texto_extraido.substring(0, 100) + '...');
+        } else {
+          setExtractedText('');
+          console.warn('⚠️ No se recibió texto extraído del backend.');
+        }
         setStep(3);
         onAnalysisComplete?.(result);
         console.log('✅ Análisis de archivo completado');
       } else {
         setError(result.error || 'Error en el análisis del archivo');
+        console.error('❌ Error en el análisis del archivo:', result.error);
       }
     } catch (err) {
       console.error('❌ Error en análisis de archivo:', err);
       setError('Error de conexión con el servidor');
     } finally {
       setIsAnalyzing(false);
+      setIsExtracting(false); // <-- Desactiva el spinner de extracción
     }
   };
 
@@ -268,7 +239,7 @@ Este texto puede ser analizado por los modelos de IA para determinar si fue gene
       {/* Resultados del análisis */}
       {analysisResult && (
         <div className="mt-6">
-          <AnalysisResults 
+          <FileAnalysisResults 
             result={analysisResult} 
             modelName={`Modelo ${modelo} - Archivo`}
           />

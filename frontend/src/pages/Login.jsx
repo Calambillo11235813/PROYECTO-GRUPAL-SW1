@@ -10,14 +10,14 @@ const Login = () => {
   // Redirigir si ya está autenticado
   React.useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+      navigate('/text', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
   const handleLoginSuccess = (result) => {
     console.log('Login exitoso:', result);
     // Redirigir al dashboard o página principal
-    navigate('/dashboard', { replace: true });
+    navigate('/text', { replace: true });
   };
 
   return (
@@ -32,9 +32,9 @@ const Login = () => {
       </div>
 
       {/* Container principal */}
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-xs sm:max-w-sm mx-auto mt-12">
         {/* Card de login */}
-        <div className="bg-slate-900/80 backdrop-blur-xl border border-cyan-500/20 rounded-2xl p-8 shadow-2xl shadow-purple-500/20">
+        <div className="bg-slate-900/80 backdrop-blur-xl border border-cyan-500/20 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-purple-500/20">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mb-4">
