@@ -5,6 +5,10 @@ import { Upload, Volume2, Play, Pause, Download, Trash2, RefreshCw, AlertCircle,
 const AudioResultCard = ({ result, onDownload, onDelete }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
+  // Mostrar el resultado en consola para depuración
+  useEffect(() => {
+    console.log('AudioResultCard result:', result);
+  }, [result]);
 
   const handlePlayPause = () => {
     if (audioRef.current) {
