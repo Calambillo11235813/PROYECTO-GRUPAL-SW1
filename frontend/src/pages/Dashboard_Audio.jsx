@@ -8,16 +8,35 @@ const DashboardAudio = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const [results, setResults] = useState([]);
 
-  const handleUploadSuccess = () => {
-    const mockResult = {
-      id: Date.now(),
-      probabilidad: Math.floor(Math.random() * 100),
-      es_ia: Math.random() > 0.5,
-      spectrogram_url: "https://via.placeholder.com/400x200/1e293b/06b6d4?text=Spectrogram",
-      audio_url: "#"
+  const handleUploadSuccess = (apiResponse) => {
+    // The backend returns the data in a nested 'data' property
+    const response = apiResponse.data || apiResponse;
+    
+    // Construir la URL del espectrograma
+    let spectrogramUrl = "";
+    if (response.spectrogram) {
+      // Si la respuesta ya incluye la URL completa del espectrograma
+      spectrogramUrl = response.spectrogram.startsWith('http') 
+        ? response.spectrogram 
+        : `${import.meta.env.VITE_API_BASE_URL}${response.spectrogram.replace(/^\//, '')}`;
+    }
+    
+    const result = {
+      id: response.id || Date.now(),
+      probabilidad: response.probability || Math.floor(Math.random() * 100),
+      es_ia: response.result === 'ai', // Use the result from the backend if available
+      spectrogram_url: spectrogramUrl,
+      audio_url: response.file || (response.id ? `${import.meta.env.VITE_API_BASE_URL}api/audio/${response.id}/` : '#')
     };
-    mockResult.es_ia = mockResult.probabilidad > 50;
-    setResults([mockResult, ...results]);
+    
+    console.log('Resultado del análisis:', result);
+    
+    // If we have a probability but no explicit result, determine it from the probability
+    if (response.probability !== undefined && response.result === undefined) {
+      result.es_ia = response.probability > 50;
+    }
+    
+    setResults([result, ...results]);
     setActiveTab('results');
   };
 

@@ -97,11 +97,28 @@ const AudioUpload = ({ onUploadSuccess }) => {
     const progressInterval = simulateProgress();
     
     try {
-      // Simular delay para mostrar progreso
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const token = localStorage.getItem('access');
-      // await uploadAudio(file, token);
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación. Por favor, inicia sesión nuevamente.');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);  // Changed from 'audio' to 'file' to match backend expectation
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}api/audio/upload/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Error al subir el archivo');
+      }
+
+      const result = await response.json();
       
       clearInterval(progressInterval);
       setProgress(100);
@@ -110,12 +127,13 @@ const AudioUpload = ({ onUploadSuccess }) => {
         setLoading(false);
         setFile(null);
         setProgress(0);
-        onUploadSuccess && onUploadSuccess();
+        onUploadSuccess && onUploadSuccess(result);
       }, 500);
       
     } catch (err) {
+      console.error('Error uploading audio:', err);
       clearInterval(progressInterval);
-      setError('Error al analizar el audio. Inténtalo de nuevo.');
+      setError(err.message || 'Error al subir el audio. Inténtalo de nuevo.');
       setLoading(false);
       setProgress(0);
     }
