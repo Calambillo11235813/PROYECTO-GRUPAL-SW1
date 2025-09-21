@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/authContext'
 import { Login, Dashboard } from './pages/pageExports'
+import Profile from './pages/Profile'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import DashboardAudio from './pages/Dashboard_Audio'
 import './App.css'
@@ -32,6 +33,14 @@ function AppContent() {
                 <DashboardAudio />
               </ProtectedRoute>
             }
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
           />
           <Route path="/" element={<Navigate to="/text" replace />} />
         </Routes>
