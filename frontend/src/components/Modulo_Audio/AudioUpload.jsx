@@ -9,6 +9,9 @@ const AudioUpload = ({ onUploadSuccess }) => {
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef(null);
 
+  // Evita "flicker" de drag cuando se entra/sale sobre elementos hijos
+  const dragCounter = useRef(0);
+
   const handleFileChange = (selectedFile) => {
     if (selectedFile) {
       // Validar tipo de archivo
@@ -29,21 +32,44 @@ const AudioUpload = ({ onUploadSuccess }) => {
     }
   };
 
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    // marcar visualmente que estamos en zona válida
+    setDragOver(true);
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
     setDragOver(false);
-    const droppedFile = e.dataTransfer.files[0];
+    const droppedFile = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!droppedFile) {
+      setError('No se detectó archivo al soltar. Intenta arrastrar desde el explorador/desktop.');
+      return;
+    }
     handleFileChange(droppedFile);
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    // importante indicar al navegador que queremos permitir drop
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
     setDragOver(true);
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
-    setDragOver(false);
+    e.stopPropagation();
+    // decrementa contador para evitar que salir sobre hijos quite el estado
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
+      setDragOver(false);
+    }
   };
 
   const simulateProgress = () => {
@@ -126,6 +152,7 @@ const AudioUpload = ({ onUploadSuccess }) => {
           }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
       >
@@ -134,7 +161,7 @@ const AudioUpload = ({ onUploadSuccess }) => {
           type="file"
           accept="audio/*,.mp3,.wav,.ogg,.m4a,.webm"
           className="hidden"
-          onChange={(e) => handleFileChange(e.target.files[0])}
+          onChange={(e) => handleFileChange(e.target.files && e.target.files[0])}
           disabled={loading}
         />
 
