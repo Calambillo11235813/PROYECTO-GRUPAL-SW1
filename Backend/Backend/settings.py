@@ -114,7 +114,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'audio.apps.AudioConfig',
+    
+    'codigo', 
 ]
 
 MIDDLEWARE = [
@@ -155,7 +156,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'software',
         'USER': 'postgres',
-        'PASSWORD': 'admin', #cambiar por la contraseña real
+        'PASSWORD': '1234', #cambiar por la contraseña real
         'HOST': 'localhost',
         'PORT': '5432',
     }
