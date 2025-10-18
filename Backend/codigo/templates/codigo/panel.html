@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Panel de Código</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 2rem;
+            color: #222;
+        }
+
+        h1 {
+            color: #0078d7;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        input[type="file"] {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            margin-right: 1rem;
+        }
+
+        button {
+            background: #0078d7;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #005fa3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th,
+        td {
+            padding: 0.8rem;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        #msg {
+            margin-top: 1rem;
+            font-weight: bold;
+            color: #0078d7;
+        }
+
+        .report-btn {
+            background: #28a745;
+        }
+
+        .report-btn:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📂 Panel de Códigos</h1>
+
+    <div class="container">
+        <!-- Subida -->
+        <form id="uploadForm" enctype="multipart/form-data">
+            <!-- 👇 cambio aquí: name="file" -->
+            <input type="file" id="archivo" name="file" required />
+            <button type="submit">Subir</button>
+        </form>
+        <div id="msg"></div>
+
+
+        <!-- Historial -->
+        <div class="section" id="history-section">
+            <h2>Historial de Subidas</h2>
+            <button id="loadHistoryBtn">🔄 Actualizar</button>
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Archivo</th>
+                        <th>Fecha</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="4" style="text-align:center;">No hay registros aún</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // === Subir código ===
+        const uploadForm = document.getElementById("uploadForm");
+        const msg = document.getElementById("msg");
+
+        uploadForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            msg.textContent = "Subiendo archivo...";
+            const formData = new FormData(uploadForm);
+
+            try {
+                const res = await fetch("/api/codigo/upload/", {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await res.json().catch(() => ({}));
+                msg.style.color = res.ok ? "#28a745" : "red";
+                msg.textContent = res.ok ? "✅ Archivo subido con éxito" : "❌ Error al subir el archivo";
+                loadHistory();
+            } catch (err) {
+                msg.style.color = "red";
+                msg.textContent = "❌ Error de conexión";
+            }
+        });
+
+        // === Cargar historial ===
+        const historyTable = document.getElementById("historyTable").querySelector("tbody");
+        const loadHistoryBtn = document.getElementById("loadHistoryBtn");
+
+        async function loadHistory() {
+            historyTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">Cargando...</td></tr>`;
+            try {
+                const res = await fetch("/api/codigo/history/");
+                const data = await res.json();
+
+                if (!res.ok || data.length === 0) {
+                    historyTable.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay registros</td></tr>`;
+                    return;
+                }
+
+                historyTable.innerHTML = "";
+                data.forEach(item => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.filename || "—"}</td>
+            <td>${new Date(item.fecha_subida).toLocaleString()}</td>
+            <td><button class="report-btn" onclick="openReport(${item.id})">📊 Ver reporte</button></td>
+          `;
+                    historyTable.appendChild(tr);
+                });
+            } catch (err) {
+                historyTable.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Error al cargar historial</td></tr>`;
+            }
+        }
+
+        loadHistoryBtn.addEventListener("click", loadHistory);
+        window.addEventListener("load", loadHistory);
+
+        // === Abrir reporte ===
+        function openReport(id) {
+            window.open(`/api/codigo/report/${id}/`, "_blank");
+        }
+    </script>
+</body>
+
+</html>
