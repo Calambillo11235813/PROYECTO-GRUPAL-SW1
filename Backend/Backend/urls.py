@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 # Backend/Backend/urls.py
+=======
+>>>>>>> UNION
 """
 URL configuration for Backend project.
 
@@ -12,9 +15,15 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+<<<<<<< HEAD
     # path('', include('audio.urls')),  # Main interface and API endpoints
     # path('', include('audio.urls')), 
     path('api/codigo/', include('codigo.urls')),
+=======
+    path('api/auth/', include('usuario.urls')),  # Include usuario URLs under /api/auth/
+    path('api/audio/', include('audio.urls')),
+    path('api/texto/', include('texto.urls')),
+>>>>>>> UNION
 ]
 
 # Servir archivos de medios en desarrollo

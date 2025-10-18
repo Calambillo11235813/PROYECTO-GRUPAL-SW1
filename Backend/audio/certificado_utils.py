@@ -122,8 +122,16 @@ def generar_certificado_pdf(audio_upload):
     # Construir el PDF
     doc.build(elements)
     
+<<<<<<< HEAD
     # Obtener el contenido del buffer
     pdf = buffer.getvalue()
     buffer.close()
     
     return pdf
+=======
+    # Obtener el contenido del PDF
+    pdf_content = buffer.getvalue()
+    
+    # Retornar el contenido del PDF
+    return pdf_content
+>>>>>>> UNION

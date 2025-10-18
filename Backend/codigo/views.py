@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os
 import logging
 import traceback
@@ -118,3 +119,8 @@ class CodigoReporteView(APIView):
         response['Content-Disposition'] = f'attachment; filename=\"reporte_{codigo.filename}.pdf\"'
         logger.info(f"📑 Reporte generado correctamente para {codigo.filename}")
         return response
+=======
+from django.shortcuts import render
+
+# Create your views here.
+>>>>>>> UNION

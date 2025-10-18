@@ -1,5 +1,6 @@
 from django.db import models
 
+<<<<<<< HEAD
 class CodigoUpload(models.Model):
     file = models.FileField(upload_to='codigo/')
     filename = models.CharField(max_length=255)
@@ -16,3 +17,6 @@ class CodigoUpload(models.Model):
 
     def __str__(self):
         return self.filename
+=======
+# Create your models here.
+>>>>>>> UNION

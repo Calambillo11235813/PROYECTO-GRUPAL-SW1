@@ -30,7 +30,20 @@ db.sqlite3
 media/
 staticfiles/
 .env
+<<<<<<< HEAD
 /Backend/venv
 
+=======
+
+*.csv
+!Backend/texto/Dataset/*.csv
+!Backend/texto/Dataset_traducidos/*.csv
+
+
+README_DESARROLLADOR.md
+/Backend/venv
+
+
+>>>>>>> UNION
 Backend/codigo/code_detection-model-complete/model.safetensors
 Backend/codigo/code_detection-model-complete/production_detector.pkl
