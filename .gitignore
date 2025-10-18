@@ -38,3 +38,7 @@ staticfiles/
 
 README_DESARROLLADOR.md
 /Backend/venv
+
+
+Backend/codigo/code_detection-model-complete/model.safetensors
+Backend/codigo/code_detection-model-complete/production_detector.pkl
