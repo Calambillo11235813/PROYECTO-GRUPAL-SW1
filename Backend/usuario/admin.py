@@ -1,8 +1,4 @@
 from django.contrib import admin
-<<<<<<< HEAD
-
-# Register your models here.
-=======
 from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser, UserProfile
 
@@ -58,4 +54,3 @@ class UserProfileAdmin(admin.ModelAdmin):
     ]
     
     readonly_fields = ['total_analyses']
->>>>>>> UNION

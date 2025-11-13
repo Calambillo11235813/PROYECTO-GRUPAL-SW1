@@ -13,13 +13,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
-<<<<<<< HEAD
-=======
 # Cargar variables de entorno
 from dotenv import load_dotenv
 load_dotenv()
 
->>>>>>> UNION
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -113,12 +110,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Application definition
 
-<<<<<<< HEAD
-=======
 # CRÍTICO: Debe estar configurado ANTES de crear migraciones
 AUTH_USER_MODEL = 'usuario.CustomUser'
 
->>>>>>> UNION
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -126,15 +120,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-<<<<<<< HEAD
-    'rest_framework',
-    
-    'codigo', 
-]
-
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-=======
     
     # Third party apps
     'rest_framework',
@@ -152,7 +137,6 @@ MIDDLEWARE = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # Should be as high as possible, especially before CommonMiddleware
->>>>>>> UNION
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -182,18 +166,6 @@ WSGI_APPLICATION = 'Backend.wsgi.application'
 
 
 # Database
-<<<<<<< HEAD
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'software',
-        'USER': 'postgres',
-        'PASSWORD': '1234', #cambiar por la contraseña real
-        'HOST': 'localhost',
-        'PORT': '5432',
-=======
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 # Database configuration
@@ -205,7 +177,6 @@ DATABASES = {
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'sw1_password'),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5433'),
->>>>>>> UNION
     }
 }
 
@@ -250,8 +221,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-<<<<<<< HEAD
-=======
 
 
 # JWT Configuration
@@ -301,4 +270,3 @@ CORS_ALLOW_METHODS = [
 # Configuración de medios para ImageField
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
->>>>>>> UNION

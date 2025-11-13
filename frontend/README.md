@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-=======
 # 🤖 Sistema de Detección de Contenido Generado por IA
 
 ## 📱 **Frontend React + Vite**
@@ -38,16 +24,19 @@ Aplicación frontend desarrollada en React que se conecta con un backend Django 
 ## 🏗️ **Stack Tecnológico**
 
 ### **⚛️ Framework Principal**
+
 - **React 18** - Framework de interfaz de usuario
 - **Vite** - Build tool ultra-rápido
 - **JavaScript ES6+** - Lenguaje de programación
 
 ### **🎨 Diseño y Estilos**
+
 - **Tailwind CSS v3.4.17** - Framework de CSS utility-first
 - **PostCSS** - Procesador de CSS
 - **Autoprefixer** - Compatibilidad de navegadores
 
 ### **🔌 Integraciones**
+
 - **Axios** - Cliente HTTP para APIs
 - **React Router** - Navegación SPA
 - **React Hooks** - Manejo de estado moderno
@@ -57,6 +46,7 @@ Aplicación frontend desarrollada en React que se conecta con un backend Django 
 ## 🎨 **Tema de Diseño: Gradiente Cibernético**
 
 ### **🌈 Paleta de Colores**
+
 ```css
 🔵 Azul Neón:     #06B6D4 (cyan-500)
 🟣 Púrpura Neón:  #A855F7 (purple-500)
@@ -68,6 +58,7 @@ Aplicación frontend desarrollada en React que se conecta con un backend Django 
 ```
 
 ### **✨ Efectos Visuales**
+
 - Gradientes animados
 - Efectos de glow y neón
 - Transiciones suaves
@@ -79,17 +70,20 @@ Aplicación frontend desarrollada en React que se conecta con un backend Django 
 ## 🚀 **Funcionalidades Implementadas**
 
 ### **📝 HU-002: Análisis de Texto Directo**
+
 - Input de texto con syntax highlighting
 - Análisis instantáneo mientras escribes
 - Visualización de probabilidades en tiempo real
 
 ### **📁 HU-001: Carga de Archivos**
+
 - Drag & drop futurista
 - Soporte para múltiples formatos
 - Preview del contenido antes del análisis
 - Validación visual de archivos
 
 ### **📊 HU-003: Visualización de Probabilidades**
+
 - Gráficos circulares animados
 - Barras de progreso con efectos neón
 - Comparación visual entre modelos
@@ -100,11 +94,13 @@ Aplicación frontend desarrollada en React que se conecta con un backend Django 
 ## ⚡ **Instalación y Configuración**
 
 ### **📋 Prerrequisitos**
-- Node.js 18+ 
+
+- Node.js 18+
 - npm 9+
 - Backend Django corriendo en puerto 8000
 
 ### **🔧 Instalación**
+
 ```bash
 # Clonar repositorio
 git clone [repository-url]
@@ -121,6 +117,7 @@ npm run dev
 ```
 
 ### **🌐 URLs**
+
 - **Desarrollo**: http://localhost:5173
 - **Backend API**: http://localhost:8000/api/texto
 
@@ -129,15 +126,17 @@ npm run dev
 ## 📱 **Estructura de la Aplicación**
 
 ### **🗂️ Páginas Principales**
+
 ```
 ├── 🏠 Home - Página principal con opciones
 ├── 📝 TextAnalysis - Análisis de texto directo
-├── 📁 FileAnalysis - Carga y análisis de archivos  
+├── 📁 FileAnalysis - Carga y análisis de archivos
 ├── 🔄 ModelComparison - Comparación de modelos
 └── 📊 History - Historial de análisis
 ```
 
 ### **🧩 Componentes Principales**
+
 ```
 components/
 ├── forms/
@@ -159,6 +158,7 @@ components/
 ## 🔗 **Integración con Backend**
 
 ### **🔌 Endpoints Conectados**
+
 ```http
 POST /api/texto/analizar/          # Análisis texto directo
 POST /api/texto/analizar-archivo/  # Análisis de archivos
@@ -167,6 +167,7 @@ GET  /api/texto/estado/            # Estado del sistema
 ```
 
 ### **📡 Servicios API**
+
 - `textAnalysis.js` - Análisis de texto
 - `fileUpload.js` - Carga de archivos
 - `modelComparison.js` - Comparación de modelos
@@ -177,12 +178,14 @@ GET  /api/texto/estado/            # Estado del sistema
 ## 🧪 **Testing y Calidad**
 
 ### **🔍 Tests Implementados**
+
 - Tests unitarios de componentes
 - Tests de integración con APIs
 - Tests de interfaz de usuario
 - Tests de accesibilidad
 
 ### **📊 Herramientas de Calidad**
+
 - ESLint - Linting de código
 - Prettier - Formateo automático
 - Lighthouse - Performance audit
@@ -193,6 +196,7 @@ GET  /api/texto/estado/            # Estado del sistema
 ## 📈 **Performance y Optimización**
 
 ### **⚡ Optimizaciones Implementadas**
+
 - Code splitting automático
 - Lazy loading de componentes
 - Optimización de imágenes
@@ -200,6 +204,7 @@ GET  /api/texto/estado/            # Estado del sistema
 - Minificación y compresión
 
 ### **📱 Responsive Design**
+
 - Mobile-first approach
 - Breakpoints optimizados
 - Touch-friendly interface
@@ -210,6 +215,7 @@ GET  /api/texto/estado/            # Estado del sistema
 ## 🔮 **Funcionalidades Futuras**
 
 ### **🚀 Roadmap V2**
+
 - [ ] Análisis en lotes de archivos
 - [ ] Exportación de reportes PDF
 - [ ] Dashboard de estadísticas
@@ -222,6 +228,7 @@ GET  /api/texto/estado/            # Estado del sistema
 ## 👥 **Equipo de Desarrollo**
 
 **Proyecto Académico - Ingeniería de Software I**
+
 - Universidad: [Nombre de la Universidad]
 - Semestre: Décimo
 - Tecnologías: React + Django + PostgreSQL + AI/ML
@@ -231,11 +238,13 @@ GET  /api/texto/estado/            # Estado del sistema
 ## 📞 **Soporte y Documentación**
 
 ### **📚 Documentación Adicional**
+
 - [README_DESARROLLADOR.md](./README_DESARROLLADOR.md) - Guía para desarrolladores
 - [API_DOCS.md](./docs/API_DOCS.md) - Documentación de APIs
 - [DEPLOYMENT.md](./docs/DEPLOYMENT.md) - Guía de despliegue
 
 ### **🐛 Reportar Issues**
+
 - GitHub Issues para bugs
 - Feature requests vía Pull Requests
 - Documentación en el Wiki del proyecto
@@ -247,4 +256,3 @@ GET  /api/texto/estado/            # Estado del sistema
 ---
 
 **🤖 ¡Explora el futuro de la detección de IA con nuestra interfaz cyberpunk!** ⚡
->>>>>>> UNION

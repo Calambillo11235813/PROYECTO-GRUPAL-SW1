@@ -8,12 +8,8 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-<<<<<<< HEAD
-from rest_framework import status, generics
-=======
 from rest_framework import status, generics, permissions
 from rest_framework.permissions import IsAuthenticated
->>>>>>> UNION
 from .models import AudioUpload
 from .serializers import AudioUploadSerializer
 from .ia_model import verificar_autenticidad
@@ -26,15 +22,10 @@ logger = logging.getLogger(__name__)
 class AudioUploadView(APIView):
     """
     Vista para manejar la subida y procesamiento de archivos de audio.
-<<<<<<< HEAD
-    """
-    parser_classes = (MultiPartParser, FormParser)
-=======
     Requiere autenticación.
     """
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [IsAuthenticated]
->>>>>>> UNION
 
     def post(self, request, *args, **kwargs):
         try:
@@ -54,13 +45,8 @@ class AudioUploadView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-<<<<<<< HEAD
-            # Guardar el modelo
-            audio_upload = file_serializer.save()
-=======
             # Asignar el usuario autenticado al audio
             audio_upload = file_serializer.save(user=self.request.user)
->>>>>>> UNION
             
             try:
                 # Procesar el audio con el modelo de IA
@@ -125,11 +111,6 @@ class AudioUploadView(APIView):
         return Response(serializer.data)
 
 
-<<<<<<< HEAD
-class AudioAnalysisView(View):
-    def get(self, request, *args, **kwargs):
-        return render(request, 'audio/index.html')
-=======
 class AudioAnalysisView(generics.ListAPIView):
     """
     Vista para listar los audios del usuario autenticado.
@@ -140,19 +121,11 @@ class AudioAnalysisView(generics.ListAPIView):
     def get_queryset(self):
         # Solo devolver los audios del usuario autenticado
         return AudioUpload.objects.filter(user=self.request.user).order_by('-created_at')
->>>>>>> UNION
 
 
 class CertificadoAudioView(APIView):
     """
     Vista para generar y descargar el certificado de análisis de un audio.
-<<<<<<< HEAD
-    """
-    def get(self, request, audio_id, *args, **kwargs):
-        try:
-            # Obtener el objeto AudioUpload
-            audio_upload = get_object_or_404(AudioUpload, id=audio_id)
-=======
     Solo el propietario del audio puede descargar su certificado.
     """
     permission_classes = [IsAuthenticated]
@@ -161,7 +134,6 @@ class CertificadoAudioView(APIView):
         try:
             # Solo permitir acceso al propietario del audio
             audio_upload = get_object_or_404(AudioUpload, id=audio_id, user=request.user)
->>>>>>> UNION
             
             # Generar el PDF del certificado
             pdf_content = generar_certificado_pdf(audio_upload)

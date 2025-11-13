@@ -1,8 +1,4 @@
 from django.shortcuts import render
-<<<<<<< HEAD
-
-# Create your views here.
-=======
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -100,4 +96,3 @@ def get_all_users(request):
         for user in users
     ]
     return Response(data, status=status.HTTP_200_OK)
->>>>>>> UNION
