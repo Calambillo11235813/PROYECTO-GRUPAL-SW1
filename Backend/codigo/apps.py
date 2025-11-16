@@ -1,3 +1,4 @@
+# Backend/codigo/apps.py
 from django.apps import AppConfig
 
 class CodigoConfig(AppConfig):

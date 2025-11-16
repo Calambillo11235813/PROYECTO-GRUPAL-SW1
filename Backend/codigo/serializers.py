@@ -1,13 +1,26 @@
+# backend/codigo/serializers.py
 from rest_framework import serializers
-from .models import CodigoUpload
+from .models import AnalisisCodigo
 
-class CodigoUploadSerializer(serializers.ModelSerializer):
+
+# =======================================
+# SERIALIZER BASE (MODELO COMPLETO)
+# =======================================
+class AnalisisCodigoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CodigoUpload
+        model = AnalisisCodigo
         fields = '__all__'
-        read_only_fields = ['filename', 'created_at', 'ast_json', 'complejidad', 'predict_score']
 
-    def create(self, validated_data):
-        file = validated_data.get('file')
-        validated_data['filename'] = file.name if file else 'desconocido'
-        return super().create(validated_data)
+
+# =======================================
+# SERIALIZER PERSONALIZADO (RESPUESTA DETALLADA)
+# =======================================
+class AnalisisRespuestaSerializer(serializers.Serializer):
+    info_archivo = serializers.DictField()
+    analisis_ia = serializers.DictField()
+    resaltado_ia = serializers.DictField()
+    metricas_codigo = serializers.DictField()
+    patrones_sintacticos = serializers.DictField()
+    codigo_original = serializers.CharField()
+    ast = serializers.CharField()
+    timestamp_analisis = serializers.DateTimeField()

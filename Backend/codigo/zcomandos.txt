@@ -1,3 +1,90 @@
 & "C:\Users\Alexader\AppData\Local\Programs\Python\Python314\python.exe" manage.py makemigrations codigo
 & "C:\Users\Alexader\AppData\Local\Programs\Python\Python314\python.exe" manage.py migrate
 & "C:\Users\Alexader\AppData\Local\Programs\Python\Python314\python.exe" manage.py runserver
+
+
+
+http://127.0.0.1:8000/api/codigo/
+
+
+
+1. CUANDO SE CAMBIE EL MODELS O LA CLASE
+cd backend
+python manage.py makemigrations
+python manage.py migrat
+python manage.py runserver
+
+
+
+
+
+
+
+HU-013 — Subida de Archivos (✔️ COMPLETA)
+
+Incluye:
+✔ Subir archivo
+✔ Analizar código
+✔ Guardar resultados en BD
+✔ Mostrar mensaje en frontend
+
+HU-014 — Análisis de Patrones Sintácticos (PARCIAL)
+Requisito	Estado
+Ver variabilidad en longitudes de funciones	✔️ ya se calcula (variabilidad_funciones)
+Reporte de patrones de estructuras de control	✔️ (patrones_control)
+Distribución de patrones comunes	✔️ (patrones_comunes)
+Idiosincrasias de estilo	✔️ (idiosincrasias)
+Índice de predictibilidad	✔️ (indice_predictibilidad)
+
+HU-015 — Marcar líneas de código hechas por IA (PARCIAL)
+Funcionalidad	Estado
+Detectar líneas sospechosas	✔️ (lineas_sospechosas)
+Mostrar en el frontend con <<< IA	✔️ ya funciona
+PDF con resaltado estilo VSCode	❌ (INCOMPLETO)
+Guardar el código original	❌ falta campo codigo_original en el modelo
+❌ 1. Agregar campo al modelo:
+❌ 2. Guardar el código al subir el archivo
+
+
+HU-018 — Reporte PDF/JSON (PARCIAL)
+Requisito	Estado
+Exportar PDF	✔️ ya genera PDF
+Exportar JSON	✔️ ya genera JSON
+Incluir métricas técnicas	✔️ todas incluidas
+Incluir evidencias (líneas sospechosas)	✔️ en JSON – faltan en PDF
+Mostrar fragmentos de código	❌ falta agregar codigo_original
+Recomendaciones IA	❌ no implementado
+Timestamp y versión del modelo	✔️ ya está
+❌ guardar y mostrar código en PDF
+
+❌ agregar recomendaciones IA (ya es fácil: un texto fijo o IA)
+HU-019 — Historial y comparación (✔️ COMPLETA)
+Requisito	Estado
+Guardar historial de análisis	✔️
+Mostrar tabla historial	✔️
+Filtrar por fecha/lenguaje/etc	❌ (aún no hay filtros, pero no los pediste aún)
+Comparación entre análisis	✔️ funciona /historial/comparar/
+Exportación de historial	❌ (pero no obligatorio aún)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

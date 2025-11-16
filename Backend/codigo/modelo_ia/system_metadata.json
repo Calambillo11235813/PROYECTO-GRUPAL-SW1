@@ -1,0 +1,12 @@
+{
+  "system_name": "AI Code Detector Hybrid System",
+  "version": "1.0",
+  "model_accuracy": 0.9192,
+  "architecture": "CodeBERT + reglas simples",
+  "training_date": "2024",
+  "performance_metrics": {
+    "original_accuracy": 0.9192,
+    "false_negative_rate": 0.0062,
+    "max_sequence_length": 512
+  }
+}
