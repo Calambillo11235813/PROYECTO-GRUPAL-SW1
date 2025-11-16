@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Análisis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body.dark {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        h1 {
+            margin: 0;
+            padding: 15px;
+            text-align: center;
+            background: #1e3a8a;
+            color: white;
+        }
+
+        .contenedor {
+            padding: 20px;
+        }
+
+        .bloque {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px #0003;
+        }
+
+        body.dark .bloque {
+            background: #1e293b;
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        body.dark th {
+            background: #334155;
+            color: white;
+        }
+
+        .ia {
+            background: #fecaca;
+        }
+
+        .humano {
+            background: #bbf7d0;
+        }
+
+        .boton {
+            background: #1e40af;
+            color: white;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .boton:hover {
+            background: #172554;
+        }
+
+        #modalCodigo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0008;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #modalBox {
+            background: white;
+            width: 80%;
+            max-height: 85%;
+            padding: 20px;
+            overflow-y: auto;
+            border-radius: 10px;
+            color: black;
+        }
+
+        body.dark #modalBox {
+            background: #1e293b;
+            color: white;
+        }
+
+        pre {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.3em;
+        }
+
+        .linea {
+            display: block;
+            white-space: pre;
+        }
+
+        .sospechosa {
+            background: #fecaca !important;
+            color: #7f1d1d;
+        }
+
+        #btnDark {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            padding: 8px 15px;
+            background: #1e40af;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        #graficoIA {
+            max-width: 260px;
+            max-height: 260px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Panel de Análisis de Código</h1>
+
+    <!-- ========================== -->
+    <!-- SUBIR ARCHIVO (HU-013)    -->
+    <!-- ========================== -->
+    <h2>Subir Archivo</h2>
+    <input type="file" id="archivo">
+    <button onclick="subir()">Subir y analizar</button>
+    <p id="msg"></p>
+
+    <hr>
+
+    <!-- ========================== -->
+    <!-- ESTADÍSTICAS (HU-014)     -->
+    <!-- ========================== -->
+    <h2>Estadísticas</h2>
+    <div id="stats">Cargando...</div>
+    <!-- GRÁFICA PIE IA vs HUMANO -->
+    <canvas id="graficoIA" width="250" height="250"></canvas>
+    <hr>
+    <h3>Filtrar historial</h3>
+    <input id="fNombre" placeholder="Nombre del archivo">
+    <input id="fLeng" placeholder="Lenguaje">
+    <select id="fIA">
+        <option value="">Todos</option>
+        <option value="true">Sólo IA</option>
+        <option value="false">Sólo humano</option>
+    </select>
+    <button onclick="filtrar()">Filtrar</button>
+
+    <!-- ========================== -->
+    <!-- HISTORIAL (HU-019)        -->
+    <!-- ========================== -->
+    <h2>Historial de análisis</h2>
+
+    <table border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Archivo</th>
+                <th>IA</th>
+                <th>Conf.</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tabla">
+            <tr>
+                <td colspan="6">Cargando...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <!-- ========================== -->
+    <!-- COMPARADOR (HU-019)       -->
+    <!-- ========================== -->
+    <h2>Comparar análisis</h2>
+    <input id="id1" type="number" placeholder="ID 1">
+    <input id="id2" type="number" placeholder="ID 2">
+    <button onclick="comparar()">Comparar</button>
+    <pre id="comp"></pre>
+
+    <hr>
+
+    <!-- ========================== -->
+    <!-- VER CÓDIGO (HU-015)       -->
+    <!-- ========================== -->
+    <h2>Código Analizado</h2>
+    <div id="verCodigo" style="white-space: pre-wrap;"></div>
+
+    <script>
+        const API = "/api/codigo";
+
+        /* =============================
+           SUBIR ARCHIVO (HU-013)
+           ============================= */
+        function subir() {
+            const file = document.getElementById("archivo").files[0];
+            const msg = document.getElementById("msg");
+
+            if (!file) {
+                msg.innerText = "Selecciona un archivo.";
+                msg.style.color = "red";
+                return;
+            }
+
+            let data = new FormData();
+            data.append("archivo", file);
+
+            msg.innerText = "Subiendo...";
+
+            fetch(`${API}/subir/`, {
+                method: "POST",
+                body: data
+            })
+                .then(r => r.json())
+                .then(() => {
+                    msg.innerText = "Archivo analizado correctamente ✔";
+                    msg.style.color = "green";
+                    cargarHistorial();
+                    cargarStats();
+                })
+                .catch(() => {
+                    msg.innerText = "Error al subir.";
+                    msg.style.color = "red";
+                });
+        }
+
+        /* =============================
+           ESTADÍSTICAS (HU-014)
+           ============================= */
+        // function cargarStats(){
+        //     fetch(`${API}/historial/estadisticas/`)
+        //     .then(r=>r.json())
+        //     .then(d=>{
+        //         document.getElementById("stats").innerHTML = `
+        //             Total: ${d.total_analisis}
+        //             | IA: ${d.generados_por_ia}
+        //             | Humanos: ${d.humanos}
+        //             | % IA: ${d.porcentaje_ia}%
+        //             | Complejidad: ${d.complejidad_promedio}
+        //         `;
+        //     });
+        // }
+        let chartIA = null;
+
+        function cargarStats() {
+            fetch(`${API}/historial/estadisticas/`)
+                .then(r => r.json())
+                .then(d => {
+
+                    document.getElementById("stats").innerHTML = `
+            Total: ${d.total_analisis}
+            | IA: ${d.generados_por_ia}
+            | Humanos: ${d.humanos}
+            | % IA: ${d.porcentaje_ia}%
+            | Complejidad: ${d.complejidad_promedio}
+        `;
+
+                    const ctx = document.getElementById("graficoIA");
+
+                    if (chartIA) chartIA.destroy(); // Previene errores y sobreposiciones
+
+                    chartIA = new Chart(ctx, {
+                        type: "pie",
+                        data: {
+                            labels: ["IA", "Humano"],
+                            datasets: [{
+                                data: [d.generados_por_ia, d.humanos],
+                                backgroundColor: ["#f87171", "#34d399"],
+                            }]
+                        }
+                    });
+                });
+        }
+
+        /* =============================
+           HISTORIAL (HU-019)
+           ============================= */
+        function cargarHistorial() {
+            fetch(`${API}/historial/`)
+                .then(r => r.json())
+                .then(lista => {
+                    let t = document.getElementById("tabla");
+                    t.innerHTML = "";
+
+                    lista.forEach(x => {
+                        t.innerHTML += `
+                <tr>
+                    <td>${x.id}</td>
+                    <td>${x.nombre_archivo}</td>
+                    <td>${x.ia_es_generado ? "IA" : "Humano"}</td>
+                    <td>${(x.ia_confianza * 100).toFixed(1)}%</td>
+                    <td>${x.fecha_analisis}</td>
+                    <td>
+                        <button onclick="ver(${x.id})">Código</button>
+                        <button onclick="pdf(${x.id})">PDF</button>
+                        <button onclick="json(${x.id})">JSON</button>
+                    </td>
+                </tr>
+            `;
+                    });
+                });
+        }
+
+        /* =============================
+           VER CÓDIGO (HU-015)
+           ============================= */
+        function ver(id) {
+            fetch(`${API}/reporte/json/${id}/`)
+                .then(r => r.json())
+                .then(data => {
+
+                    const codigo = data.codigo_original || "";
+                    const sospe = data.resaltado_ia?.lineas_sospechosas || [];
+
+                    let html = "";
+
+                    codigo.split("\n").forEach((linea, i) => {
+                        const num = String(i + 1).padStart(3, "0");
+                        html += `${num} | ${linea}`;
+                        if (sospe.includes(i + 1)) html += "   <<< IA";
+                        html += "\n";
+                    });
+
+                    document.getElementById("verCodigo").innerText = html;
+                });
+        }
+
+        /* =============================
+           PDF / JSON (HU-018)
+           ============================= */
+        function pdf(id) {
+            window.open(`${API}/reporte/pdf/${id}/`, "_blank");
+        }
+        function json(id) {
+            window.open(`${API}/reporte/json/${id}/`, "_blank");
+        }
+
+        /* =============================
+           COMPARAR (HU-019)
+           ============================= */
+        function comparar() {
+            let id1 = document.getElementById("id1").value;
+            let id2 = document.getElementById("id2").value;
+
+            fetch(`${API}/historial/comparar/?id1=${id1}&id2=${id2}`)
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById("comp").textContent = JSON.stringify(d, null, 2);
+                });
+        }
+        /* =============================
+            FILTRAR HISTORIAL (HU-019)
+           ============================= */
+        function filtrar() {
+            let nombre = document.getElementById("fNombre").value;
+            let leng = document.getElementById("fLeng").value;
+            let ia = document.getElementById("fIA").value;
+
+            let url = `${API}/historial/?`;
+
+            if (nombre) url += `nombre=${nombre}&`;
+            if (leng) url += `lenguaje=${leng}&`;
+            if (ia) url += `ia=${ia}&`;
+
+            fetch(url)
+                .then(r => r.json())
+                .then(lista => renderTabla(lista));
+        }
+
+        function renderTabla(lista) {
+            let t = document.getElementById("tabla");
+            t.innerHTML = "";
+
+            lista.forEach(x => {
+                t.innerHTML += `
+            <tr>
+                <td>${x.id}</td>
+                <td>${x.nombre_archivo}</td>
+                <td>${x.ia_es_generado ? "IA" : "Humano"}</td>
+                <td>${(x.ia_confianza * 100).toFixed(1)}%</td>
+                <td>${x.fecha_analisis}</td>
+                <td>
+                    <button onclick="ver(${x.id})">Código</button>
+                    <button onclick="pdf(${x.id})">PDF</button>
+                    <button onclick="json(${x.id})">JSON</button>
+                </td>
+            </tr>
+        `;
+            });
+        }
+
+        /* =============================
+           ARRANQUE
+           ============================= */
+        cargarStats();
+        cargarHistorial();
+    </script>
+
+</body>
+
+</html>
