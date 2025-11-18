@@ -93,7 +93,7 @@ def analizar_texto(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Formato JSON inválido'}, status=400)
     except Exception as e:
-        logger.error(f"Error en analizar_texto: {str(e)}")
+        logger.exception("Error en analizar_texto")
         return JsonResponse({'error': f'Error interno: {str(e)}'}, status=500)
 
 @require_http_methods(["GET"])
@@ -251,12 +251,20 @@ def analizar_archivo(request):
         if len(texto_extraido) > 10000:
             texto_extraido = texto_extraido[:10000] + "..."
         
+        # Obtener predictor para el modelo seleccionado
+        predictor = get_predictor(modelo_seleccionado)
+        if predictor is None:
+            return JsonResponse({
+                'error': f'No se pudo cargar el modelo {modelo_seleccionado}',
+                'codigo': 'ERROR_MODELO_CARGA'
+            }, status=500)
+
         # Dividir en fragmentos
         fragmentos = dividir_en_fragmentos(texto_extraido, max_palabras=300)
         resultados = []
         for frag in fragmentos:
             pred = predictor.predict(frag)
-            if 'error' not in pred:
+            if isinstance(pred, dict) and 'error' not in pred:
                 resultados.append(pred)
 
         if not resultados:
@@ -324,7 +332,7 @@ def analizar_archivo(request):
         })
         
     except Exception as e:
-        logger.error(f"Error en analizar_archivo: {str(e)}")
+        logger.exception("Error en analizar_archivo")
         return JsonResponse({
             'error': f'Error interno del servidor: {str(e)}',
             'codigo': 'ERROR_INTERNO'
