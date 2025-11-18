@@ -1,8 +1,6 @@
 from django.db import models
-<<<<<<< HEAD
 
 # Create your models here.
-=======
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
@@ -53,4 +51,3 @@ class ArchivoAnalisis(models.Model):
         db_table = 'archivo_analisis'
         verbose_name = 'Archivo de Análisis'
         verbose_name_plural = 'Archivos de Análisis'
->>>>>>> UNION

@@ -1,8 +1,6 @@
-<<<<<<< HEAD
 from django.shortcuts import render
 
 # Create your views here.
-=======
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -474,4 +472,3 @@ def texto_root(request):
         "message": "Servicio de análisis de texto disponible",
         "version": "1.0.0"
     })
->>>>>>> UNION
