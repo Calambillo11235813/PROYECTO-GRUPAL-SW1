@@ -242,6 +242,8 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
+# En desarrollo, permitir todos los orígenes para la app móvil
+CORS_ALLOW_ALL_ORIGINS = True  # Solo en desarrollo
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite frontend
     "http://127.0.0.1:5173",
