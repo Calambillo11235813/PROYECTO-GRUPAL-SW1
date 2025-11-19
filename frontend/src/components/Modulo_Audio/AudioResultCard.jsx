@@ -51,6 +51,7 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
           setLoadingAudio(false);
         }
       } catch (err) {
+        console.error('[AudioResultCard] loadAudio error:', err);
         if (!cancelled) {
           setAudioSrc('');
           setAudioError('No se pudo cargar el audio');
@@ -110,6 +111,7 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
+      console.error('[AudioResultCard] handleDownloadCertificate error:', error);
     }
   };
 
@@ -242,15 +244,12 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
           )}
         </div>
 
-        {/* Fallback for audio error */}
+          {/* Fallback for audio error */}
         {!loadingAudio && !audioSrc && (
           <div className="space-y-2">
             <p className="text-sm text-orange-400">{audioError || 'No hay audio para reproducir'}</p>
 
-            {/* Mostrar detalle técnico para debugging */}
-            {fetchDetail && (
-              <pre className="text-xs text-slate-500 bg-slate-800 p-2 rounded">{JSON.stringify(fetchDetail, null, 2)}</pre>
-            )}
+            {/* Nota: se eliminó referencia a fetchDetail inexistente */}
 
             <div className="flex items-center space-x-2">
               {/* Retry solo si backend proporcionó alguna URL distinta de placeholder */}
@@ -267,6 +266,11 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
             </div>
           </div>
         )}
+
+        {/* Mostrar explicación breve del resultado */}
+        <div className="mt-3 text-sm text-slate-400">
+          {getResultExplanation(result.es_ia, result.probabilidad)}
+        </div>
 
         {/* Espectrograma con fallback si la URL externa falla */}
         {result.spectrogram_url && (

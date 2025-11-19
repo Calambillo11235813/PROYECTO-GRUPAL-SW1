@@ -1,54 +1,38 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api/auth';
+import { API_ENDPOINTS, getAuthHeaders, getAccessToken, getRefreshToken } from './config';
 
 class AuthService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = API_ENDPOINTS.AUTH;
   }
 
-  // Obtener token almacenado
-  getAccessToken() {
-    return localStorage.getItem('access_token');
-  }
-
-  getRefreshToken() {
-    return localStorage.getItem('refresh_token');
-  }
-
-  // Almacenar tokens
+  // Almacenar tokens en localStorage
   setTokens(accessToken, refreshToken) {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    if (accessToken) localStorage.setItem('access_token', accessToken);
+    if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
   }
 
-  // Limpiar tokens
+  // Limpiar tokens de localStorage
   clearTokens() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
   }
 
-  // Verificar si está autenticado
-  isAuthenticated() {
-    const token = this.getAccessToken();
-    if (!token) return false;
-    
+  // Wrappers para obtener tokens (usa las funciones de config si están disponibles)
+  getAccessToken() {
     try {
-      // Verificar si el token no ha expirado
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-      return payload.exp > currentTime;
-    } catch (error) {
-      return false;
+      return getAccessToken();
+    } catch {
+      return localStorage.getItem('access_token');
     }
   }
 
-  // Headers para requests autenticados
-  getAuthHeaders() {
-    const token = this.getAccessToken();
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    };
+  getRefreshToken() {
+    try {
+      return getRefreshToken();
+    } catch {
+      return localStorage.getItem('refresh_token');
+    }
   }
 
   // Registro de usuario
@@ -133,12 +117,12 @@ class AuthService {
   // Logout de usuario
   async logout() {
     try {
-      const refreshToken = this.getRefreshToken();
+      const refreshToken = getRefreshToken();
       
       if (refreshToken) {
         await fetch(`${this.baseURL}/logout/`, {
           method: 'POST',
-          headers: this.getAuthHeaders(),
+          headers: getAuthHeaders(true),
           body: JSON.stringify({ refresh: refreshToken })
         });
       }
@@ -157,7 +141,7 @@ class AuthService {
     try {
       const response = await fetch(`${this.baseURL}/profile/`, {
         method: 'GET',
-        headers: this.getAuthHeaders()
+        headers: getAuthHeaders(true)
       });
 
       const data = await response.json();
@@ -181,7 +165,7 @@ class AuthService {
   // Refrescar token de acceso
   async refreshAccessToken() {
     try {
-      const refreshToken = this.getRefreshToken();
+      const refreshToken = getRefreshToken();
       
       if (!refreshToken) {
         throw new Error('No hay refresh token disponible');
@@ -223,7 +207,7 @@ class AuthService {
     try {
       const userStr = localStorage.getItem('user');
       return userStr ? JSON.parse(userStr) : null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }

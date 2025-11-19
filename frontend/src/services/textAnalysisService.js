@@ -1,6 +1,6 @@
-import authService from './authService';
+import { API_ENDPOINTS, getAuthHeaders } from './config';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api/texto'; // ← MANTENER IGUAL
+const API_BASE_URL = API_ENDPOINTS.TEXTO; // ← MANTENER IGUAL
 
 class TextAnalysisService {
   constructor() {
@@ -9,18 +9,7 @@ class TextAnalysisService {
 
   // Headers con autenticación opcional - MEJORADO
   getHeaders(includeAuth = false, isFormData = false) {
-    const headers = {};
-
-    // Solo agregar Content-Type si NO es FormData
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    if (includeAuth && authService.isAuthenticated()) {
-      headers['Authorization'] = `Bearer ${authService.getAccessToken()}`;
-    }
-
-    return headers;
+    return getAuthHeaders(includeAuth, isFormData);
   }
 
   // Validar texto de entrada - NUEVA FUNCIÓN

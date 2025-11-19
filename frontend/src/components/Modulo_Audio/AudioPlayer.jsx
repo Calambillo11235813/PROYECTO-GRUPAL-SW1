@@ -150,7 +150,7 @@ const AudioPlayer = ({ audioUrl, fileName, onDownloadCertificate }) => {
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('error', handleLoadError);
     };
-  }, [audioUrl]);
+  }, [audioUrl, loading]);
 
   return (
     <div className="mb-4 bg-slate-800/50 rounded-xl p-4">

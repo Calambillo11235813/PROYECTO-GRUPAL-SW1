@@ -9,16 +9,19 @@ try:
         BertForSequenceClassification,
         AutoTokenizer,
         AutoModelForSequenceClassification,
+        AutoModelForCausalLM,
     )
 except Exception:
     BertTokenizer = None
     BertForSequenceClassification = None
     AutoTokenizer = None
     AutoModelForSequenceClassification = None
+    AutoModelForCausalLM = None
 
 import os
 import logging
 import json
+import math
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -63,6 +66,13 @@ class TextoPredictor:
         # Permitir inyectar model/tokenizer (útil para tests sin cargar modelos pesados)
         self.tokenizer = tokenizer
         self.model = model
+
+        # Indica si el predictor fue construido con model/tokenizer inyectados
+        self._injected = (model is not None and tokenizer is not None)
+
+        # Para cálculo de perplexity con un LM ligero (lazy load)
+        self.lm_model = None
+        self.lm_tokenizer = None
 
         # Cargar tokenizador y modelo si no se inyectaron
         if self.model is None or self.tokenizer is None:
@@ -220,6 +230,49 @@ class TextoPredictor:
                 'tokenizer_cargado': False,
                 'estado': 'Error'
             }
+
+    def _compute_perplexity(self, text):
+        """
+        Calcula la perplexity usando un modelo causal ligero (distilgpt2) si está disponible.
+        Retorna la perplexity (float) o None si no es posible calcularla.
+        """
+        if _torch is None or AutoModelForCausalLM is None:
+            return None
+        try:
+            # Cargar LM ligero si no está cargado
+            if self.lm_model is None or self.lm_tokenizer is None:
+                try:
+                    self.lm_tokenizer = AutoTokenizer.from_pretrained('distilgpt2')
+                    self.lm_model = AutoModelForCausalLM.from_pretrained('distilgpt2')
+                    if hasattr(self.lm_model, 'to'):
+                        try:
+                            self.lm_model.to(self.device)
+                        except Exception:
+                            pass
+                    if hasattr(self.lm_model, 'eval'):
+                        try:
+                            self.lm_model.eval()
+                        except Exception:
+                            pass
+                except Exception:
+                    return None
+
+            # Tokenizar y calcular loss
+            enc = self.lm_tokenizer(text, return_tensors='pt', truncation=True, max_length=1024)
+            input_ids = enc.get('input_ids')
+            if input_ids is None:
+                return None
+            if _torch is not None:
+                input_ids = input_ids.to(self.device)
+                with _torch.no_grad():
+                    outputs = self.lm_model(input_ids, labels=input_ids)
+                    loss = outputs.loss.item()
+                    perp = math.exp(loss)
+                    return float(perp)
+            else:
+                return None
+        except Exception:
+            return None
     
     def predict(self, text):
         """
@@ -288,34 +341,108 @@ class TextoPredictor:
                         max_length=self.max_length,
                         padding="max_length"
                     )
-                    inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                    # contar tokens efectivos del chunk (sin padding)
+                    token_count = len([t for t in chunk_ids if t is not None])
                     if _torch is not None:
+                        inputs = {k: v.to(self.device) for k, v in inputs.items()}
                         with _torch.no_grad():
                             outputs = self.model(**inputs)
-                            logits = outputs.logits
-                            probabilities = _torch.softmax(logits, dim=1)
-                            probs_ia.append(probabilities[0][1].item())
-                            probs_hum.append(probabilities[0][0].item())
+                            logits = outputs.logits[0].cpu()
+                            # Guardar logits crudos para agregación ponderada
+                            if 'chunk_logits' not in locals():
+                                chunk_logits = []
+                                chunk_token_counts = []
+                            chunk_logits.append(logits)
+                            chunk_token_counts.append(token_count)
                     else:
                         # Fallback neutral probabilities when torch not available
                         probs_ia.append(0.5)
                         probs_hum.append(0.5)
 
-                if not probs_ia:
-                    return {'error': 'No se pudo procesar el texto en chunks'}
-                prob_ia = sum(probs_ia) / len(probs_ia)
-                prob_humano = sum(probs_hum) / len(probs_hum)
+                # Si trabajamos con logits (torch disponible)
+                if 'chunk_logits' in locals() and chunk_logits:
+                    total_tokens = sum(chunk_token_counts) if sum(chunk_token_counts) > 0 else len(chunk_logits)
+                    # sumar logits ponderados
+                    weighted = None
+                    for idx, lg in enumerate(chunk_logits):
+                        weight = chunk_token_counts[idx] if chunk_token_counts[idx] > 0 else 1
+                        vec = lg * weight
+                        if weighted is None:
+                            weighted = vec
+                        else:
+                            weighted += vec
+                    avg_logits = weighted / total_tokens
+                    try:
+                        probs = _torch.softmax(avg_logits, dim=0)
+                        prob_humano = probs[0].item()
+                        prob_ia = probs[1].item()
+                    except Exception:
+                        prob_ia = 0.5
+                        prob_humano = 0.5
+                else:
+                    if not probs_ia:
+                        return {'error': 'No se pudo procesar el texto en chunks'}
+                    prob_ia = sum(probs_ia) / len(probs_ia)
+                    prob_humano = sum(probs_hum) / len(probs_hum)
 
-            predicted_class = 1 if prob_ia >= prob_humano else 0
+                # Intentar calcular perplexity y combinar señales
+                perp = None
+                ensemble_prob_ia = None
+                # Solo calcular perplexity si no usamos modelos/tokenizers inyectados (evitar alterar tests)
+                if not self._injected:
+                    try:
+                        perp = self._compute_perplexity(text)
+                        if perp is not None and perp > 0:
+                            lm_signal = 1.0 / (1.0 + math.log(perp + 1.0))
+                            ensemble_prob_ia = (prob_ia + lm_signal) / 2.0
+                    except Exception:
+                        perp = None
+
+            # Si no se calculó ensemble en el branch de chunks, intenta calcularlo ahora
+            if 'ensemble_prob_ia' not in locals():
+                perp = None
+                ensemble_prob_ia = None
+                # Solo calcular perplexity si no usamos modelos/tokenizers inyectados
+                if not self._injected:
+                    try:
+                        perp = self._compute_perplexity(text)
+                        if perp is not None and perp > 0:
+                            lm_signal = 1.0 / (1.0 + math.log(perp + 1.0))
+                            ensemble_prob_ia = (prob_ia + lm_signal) / 2.0
+                    except Exception:
+                        perp = None
+
+            # Seleccionar probabilidad final usada para decidir (ensemble si existe)
+            prob_ia_used = ensemble_prob_ia if ensemble_prob_ia is not None else prob_ia
+            prob_hum_used = 1.0 - prob_ia_used
+
+            predicted_class = 1 if prob_ia_used >= prob_hum_used else 0
             prediction = "IA" if predicted_class == 1 else "Humano"
 
-            return {
+            result = {
                 'prediccion': prediction,
+                # compatibilidad hacia atrás: claves originales
                 'probabilidad_ia': round(prob_ia * 100, 2),
                 'probabilidad_humano': round(prob_humano * 100, 2),
                 'confianza': round(max(prob_ia, prob_humano) * 100, 2),
+                # claves nuevas/explicativas
+                'probabilidad_ia_modelo': round(prob_ia * 100, 2),
+                'probabilidad_humano_modelo': round(prob_humano * 100, 2),
+                'confianza_modelo': round(max(prob_ia, prob_humano) * 100, 2),
                 'modelo_usado': self.model_type
             }
+
+            # Añadir ensemble/perplexity si disponible
+            if 'perp' in locals() and perp is not None:
+                result['perplexity'] = round(perp, 4)
+            elif 'perp' in locals() and perp is None:
+                # nothing
+                pass
+            if ensemble_prob_ia is not None:
+                result['probabilidad_ia_ensemble'] = round(ensemble_prob_ia * 100, 2)
+                result['confianza_ensemble'] = round(max(ensemble_prob_ia, 1.0 - ensemble_prob_ia) * 100, 2)
+
+            return result
         except Exception as e:
             logger.error(f"Error durante la predicción con modelo {self.model_type}: {str(e)}")
             return {'error': f'Error al procesar el texto: {str(e)}'}

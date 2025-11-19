@@ -7,9 +7,7 @@ import AnalysisResults from './TextAnalyzer/AnalysisResults';
 import ModelComparison from './ModelComparison/ModelComparison';
 import ModelCard from './ModelComparison/ModelCard';
 import ComparisonChart from './ModelComparison/ComparisonChart';
-import FileAnalysis from './FileAnalysis/FileAnalysis';
-import FileUploader from './FileAnalysis/FileUploader';
-import FilePreview from './FileAnalysis/FilePreview';
+// FileAnalysis components removed from exports (feature disabled)
 import ServiceStatus from './ServiceStatus/ServiceStatus';
 import StatusIndicator from './ServiceStatus/StatusIndicator';
 import AnalysisCard from './shared/AnalysisCard';
@@ -19,7 +17,7 @@ import ErrorMessage from './shared/ErrorMessage';
 // Exportar los componentes
 export { TextAnalyzer, TextInput, AnalysisResults };
 export { ModelComparison, ModelCard, ComparisonChart };
-export { FileAnalysis, FileUploader, FilePreview };
+// file analysis components intentionally not exported
 export { ServiceStatus, StatusIndicator };
 export { AnalysisCard, LoadingSpinner, ErrorMessage };
 
@@ -36,11 +34,7 @@ export const ModelComponents = {
   ComparisonChart
 };
 
-export const FileComponents = {
-  FileAnalysis,
-  FileUploader,
-  FilePreview
-};
+// FileComponents removed (feature disabled)
 
 export const ServiceComponents = {
   ServiceStatus,

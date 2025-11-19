@@ -6,7 +6,6 @@ import Navbar from '../components/Navbar/Navbar'; // Eliminé las llaves { }
 // Importando componentes del módulo de texto
 import {
   TextAnalyzer,
-  FileAnalysis,
   ModelComparison,
   ServiceStatus,
   LoadingSpinner
@@ -50,8 +49,7 @@ const Dashboard = () => {
                       - Análisis de Archivo
                     */}
                     {[
-                      { id: 'analyze', label: 'Análisis de Texto', icon: '📝' },
-                      { id: 'file', label: 'Análisis de Archivo', icon: '📄' }
+                      { id: 'analyze', label: 'Análisis de Texto', icon: '📝' }
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -82,12 +80,7 @@ const Dashboard = () => {
 
                  
 
-                  {/* Tab: Análisis de Archivo */}
-                  {activeTab === 'file' && (
-                    <FileAnalysis 
-                      onLoadingChange={handleLoadingChange}
-                    />
-                  )}
+                  {/* (Se ha eliminado la pestaña "Análisis de Archivo") */}
                 </div>
               </div>
 

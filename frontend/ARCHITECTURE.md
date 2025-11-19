@@ -14,6 +14,7 @@
 
 ## Componentes y módulos
 - Modulo_Texto/ — TextAnalyzer, FileAnalysis, ModelComparison
+ - Modulo_Texto/ — TextAnalyzer, ModelComparison
 - Modulo_Audio/ — AudioUpload, AudioHistory, AudioResultCard
 - ui/ — Button, Input, LoadingSpinner
 - Navbar/ — navegación y mobile menu
