@@ -121,7 +121,7 @@ const AnalysisResults = ({ analysisData }) => {
             <h3 className="font-semibold text-slate-200">Predictibilidad</h3>
           </div>
           <p className="text-2xl font-bold text-purple-400">
-            {(patrones_sintacticos?.indice_predictibilidad * 100)?.toFixed(1) ||
+            {(metricas_codigo?.indice_predictibilidad * 100)?.toFixed(1) ||
               "N/A"}
             %
           </p>
@@ -137,7 +137,7 @@ const AnalysisResults = ({ analysisData }) => {
             <h3 className="font-semibold text-slate-200">Líneas Sospechosas</h3>
           </div>
           <p className="text-2xl font-bold text-orange-400">
-            {resaltado_ia?.total_lineas_sospechosas || 0}
+            {resaltado_ia?.lineas_sospechosas?.length || 0}
           </p>
           <p className="text-xs text-slate-400 mt-1">Fragmentos detectados</p>
         </div>
@@ -160,7 +160,7 @@ const AnalysisResults = ({ analysisData }) => {
                 Variabilidad en Funciones
               </p>
               <p className="text-xl font-bold text-slate-200">
-                {patrones_sintacticos.variabilidad_funciones?.toFixed(2) ||
+                {metricas_codigo?.variabilidad_funciones?.toFixed(2) ||
                   "N/A"}
               </p>
               <p className="text-xs text-slate-500 mt-1">Desviación estándar</p>
@@ -188,72 +188,62 @@ const AnalysisResults = ({ analysisData }) => {
       )}
 
       {/* Líneas Sospechosas Detalladas */}
-      {resaltado_ia?.lineas_marcadas &&
-        resaltado_ia.lineas_marcadas.length > 0 && (
+      {resaltado_ia?.lineas_sospechosas &&
+        resaltado_ia.lineas_sospechosas.length > 0 && (
           <div className="bg-slate-800/50 border border-orange-500/50 rounded-xl p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Code2 className="w-6 h-6 text-orange-400" />
               <h3 className="text-lg font-bold text-slate-100">
-                Fragmentos Sospechosos Detectados
+                Líneas Sospechosas Detectadas
               </h3>
             </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {resaltado_ia.lineas_marcadas.slice(0, 10).map((linea, idx) => (
-                <div
-                  key={idx}
-                  className="bg-slate-900/50 border border-orange-500/30 rounded-lg p-3"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-400">
-                      Línea {linea.numero}
-                    </span>
+            <div className="space-y-2">
+              <div className="bg-slate-900/50 border border-orange-500/30 rounded-lg p-4">
+                <p className="text-sm text-slate-400 mb-2">Números de línea detectadas:</p>
+                <div className="flex flex-wrap gap-2">
+                  {resaltado_ia.lineas_sospechosas.slice(0, 20).map((numeroLinea, idx) => (
                     <span
-                      className={`text-xs font-bold ${getConfidenceColor(
-                        linea.confianza
-                      )}`}
+                      key={idx}
+                      className="px-3 py-1 bg-orange-500/20 text-orange-300 rounded-lg text-sm font-mono"
                     >
-                      {(linea.confianza * 100).toFixed(0)}% confianza
+                      {numeroLinea}
                     </span>
-                  </div>
-                  <code className="text-sm text-orange-300 font-mono block whitespace-pre-wrap">
-                    {linea.codigo}
-                  </code>
-                  {linea.razon && (
-                    <p className="text-xs text-slate-500 mt-2">
-                      Razón: {linea.razon}
-                    </p>
+                  ))}
+                  {resaltado_ia.lineas_sospechosas.length > 20 && (
+                    <span className="px-3 py-1 text-slate-400 text-sm">
+                      +{resaltado_ia.lineas_sospechosas.length - 20} más
+                    </span>
                   )}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         )}
 
-      {/* Naming Conventions */}
-      {metricas_codigo?.naming_conventions && (
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6">
+      {/* Bloques Sospechosos */}
+        <div className="bg-slate-800/50 border border-purple-500/50 rounded-xl p-6">
           <div className="flex items-center space-x-3 mb-4">
             <FileCode className="w-6 h-6 text-purple-400" />
             <h3 className="text-lg font-bold text-slate-100">
-              Convenciones de Nomenclatura
+              Bloques Sospechosos
             </h3>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(metricas_codigo.naming_conventions).map(
-              ([key, value]) => (
-                <div
-                  key={key}
-                  className="bg-slate-900/50 rounded-lg p-3 text-center"
-                >
-                  <p className="text-2xl font-bold text-purple-400">{value}</p>
-                  <p className="text-xs text-slate-400 mt-1 capitalize">
-                    {key.replace("_", " ")}
-                  </p>
-                </div>
-              )
-            )}
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {resaltado_ia.bloques.map((bloque, idx) => (
+              <div
+                key={idx}
+                className="bg-slate-900/50 border border-purple-500/30 rounded-lg p-3"
+              >
+                <p className="text-sm text-slate-400 mb-1">
+                  Bloque {idx + 1}: Líneas {bloque.inicio} - {bloque.fin}
+                </p>
+                <p className="text-xs text-purple-400">
+                  Tamaño: {bloque.fin - bloque.inicio + 1} líneas
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       )}

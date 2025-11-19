@@ -143,6 +143,24 @@ NOTA:
     • No usa internet.
     • Todo se ejecuta localmente.
 
+ALTERNATIVA: DETECTOR PKL (joblib)
+--------------------------------------------------------
+Desde ahora el backend también soporta un detector `.pkl` (por ejemplo `production_detector.pkl`).
+
+Selección del detector (por env):
+- `CODE_DETECTOR_IMPL=pkl` → usa PKL
+- `CODE_DETECTOR_IMPL=hf` → usa HuggingFace
+- `CODE_DETECTOR_IMPL=auto` (default) → intenta PKL y si no, HF, si no, fallback
+
+Rutas por defecto:
+- PKL: `codigo/code_detection-model-complete/production_detector.pkl` (o `codigo/modelo_ia/production_detector.pkl`)
+- HF:  `codigo/modelo_ia/`
+
+Variables útiles:
+- `CODE_PKL_PATH` → ruta absoluta/relativa al `.pkl`
+- `CODE_HF_PATH` → (opcional) ruta al checkpoint HF
+- `CODE_DETECTOR_FORCE_FALLBACK=1` → fuerza dummy detector (dev)
+
 --------------------------------------------------------
 📦 Cómo instalar/colocar el modelo (HuggingFace)
 --------------------------------------------------------
@@ -251,4 +269,15 @@ $env:CODE_DETECTOR_FORCE_FALLBACK="1"
 ```
 
 5) Recomendado en desarrollo: usar `.env` con `CODE_DETECTOR_FORCE_FALLBACK=1` y añadir modelo real más adelante en `codigo/modelo_ia/`.
+
+6) Probar modo PKL (si tienes `production_detector.pkl`):
+
+PowerShell (desde `Backend/`):
+
+```
+$env:CODE_DETECTOR_IMPL="pkl"
+$env:CODE_PKL_PATH="C:\Users\DELL\Desktop\PROYECTO-GRUPAL-SW1\Backend\codigo\code_detection-model-complete\production_detector.pkl"
+.\n+venv\Scripts\python.exe -c "import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE','Backend.settings'); django.setup(); from django.test import Client; from django.core.files.uploadedfile import SimpleUploadedFile as SUF; c=Client(); r=c.post('/api/codigo/subir/', {'archivo': SUF('foo.py', b'print(123)')}); print(r.status_code); print(r.json())"
+```
+
 

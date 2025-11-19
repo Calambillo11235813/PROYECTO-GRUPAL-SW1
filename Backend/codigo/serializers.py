@@ -22,5 +22,5 @@ class AnalisisRespuestaSerializer(serializers.Serializer):
     metricas_codigo = serializers.DictField()
     patrones_sintacticos = serializers.DictField()
     codigo_original = serializers.CharField()
-    ast = serializers.CharField()
+    ast = serializers.JSONField()
     timestamp_analisis = serializers.DateTimeField()

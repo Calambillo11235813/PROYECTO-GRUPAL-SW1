@@ -6,9 +6,20 @@ from datetime import datetime
 
 class CodeDetectorHF:
     def __init__(self):
-        # Ruta segura a /codigo/modelo_ia/
+        # Ruta segura - buscar en code_detection-model-complete primero
         BASE = os.path.dirname(os.path.dirname(__file__))  # backend/codigo/
-        carpeta = os.path.join(BASE, "modelo_ia")
+        
+        # Intentar primero code_detection-model-complete
+        carpeta_completa = os.path.join(BASE, "code_detection-model-complete")
+        carpeta_ia = os.path.join(BASE, "modelo_ia")
+        
+        # Verificar cuál existe
+        if os.path.isfile(os.path.join(carpeta_completa, "model.safetensors")):
+            carpeta = carpeta_completa
+        elif os.path.exists(carpeta_ia):
+            carpeta = carpeta_ia
+        else:
+            raise FileNotFoundError(f"No se encontró modelo en {carpeta_completa} ni {carpeta_ia}")
 
         print("📌 Cargando modelo CodeBERT desde:", carpeta)
 
@@ -41,13 +52,17 @@ class CodeDetectorHF:
             logits = self.model(**inputs).logits
             probs = torch.softmax(logits, dim=1)[0]
 
-        ai = float(probs[0])
-        human = float(probs[1])
+        # NOTA: Aunque config.json dice Label 0="Ai_generated", Label 1="Human_written",
+        # el modelo fue entrenado con etiquetas invertidas.
+        # Label 0 = HUMANO (empíricamente verificado)
+        # Label 1 = IA (empíricamente verificado)
+        human_prob = float(probs[0])
+        ai_prob = float(probs[1])
 
         return {
-            "is_ai_generated": ai > human,
-            "confidence": max(ai, human),
-            "ai_prob": ai,
-            "human_prob": human,
+            "is_ai_generated": ai_prob > human_prob,
+            "confidence": max(ai_prob, human_prob),
+            "ai_prob": ai_prob,
+            "human_prob": human_prob,
             "method_used": "codebert"
         }
