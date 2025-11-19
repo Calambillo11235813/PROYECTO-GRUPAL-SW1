@@ -16,10 +16,9 @@ class CodeAnalysisService {
   async uploadCodeFile(file) {
     const formData = new FormData();
     formData.append("archivo", file);
-
-    const response = await fetch(`${this.baseURL}/subir/`, {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(`${this.baseURL}/subir/`, {
       method: "POST",
-      headers: this.getAuthHeaders(),
       body: formData,
     });
 
@@ -32,12 +31,10 @@ class CodeAnalysisService {
 
   // HU-014, HU-015: Obtener detalle de análisis
   async getAnalysisDetail(id) {
-    const response = await fetch(`${this.baseURL}/analisis/${id}/`, {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(`${this.baseURL}/analisis/${id}/`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.getAuthHeaders(),
-      },
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -57,14 +54,12 @@ class CodeAnalysisService {
     if (filters.inicio) params.append("inicio", filters.inicio);
     if (filters.fin) params.append("fin", filters.fin);
 
-    const response = await fetch(
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(
       `${this.baseURL}/historial/?${params.toString()}`,
       {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...this.getAuthHeaders(),
-        },
+        headers: { "Content-Type": "application/json" },
       }
     );
 
@@ -77,12 +72,10 @@ class CodeAnalysisService {
 
   // HU-019: Comparar análisis side-by-side
   async compareAnalysis(ids) {
-    const response = await fetch(`${this.baseURL}/historial/comparar/`, {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(`${this.baseURL}/historial/comparar/`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.getAuthHeaders(),
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids }),
     });
 
@@ -95,12 +88,10 @@ class CodeAnalysisService {
 
   // HU-019: Estadísticas del historial
   async getStatistics() {
-    const response = await fetch(`${this.baseURL}/historial/estadisticas/`, {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(`${this.baseURL}/historial/estadisticas/`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.getAuthHeaders(),
-      },
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -112,9 +103,9 @@ class CodeAnalysisService {
 
   // HU-018: Descargar reporte PDF
   async downloadPDFReport(id) {
-    const response = await fetch(`${this.baseURL}/reporte/pdf/${id}/`, {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(`${this.baseURL}/reporte/pdf/${id}/`, {
       method: "GET",
-      headers: this.getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -134,12 +125,10 @@ class CodeAnalysisService {
 
   // HU-018: Obtener reporte JSON
   async getJSONReport(id) {
-    const response = await fetch(`${this.baseURL}/reporte/json/${id}/`, {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(`${this.baseURL}/reporte/json/${id}/`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.getAuthHeaders(),
-      },
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -151,12 +140,10 @@ class CodeAnalysisService {
 
   // HU-019: Exportar historial completo
   async exportHistoryJSON() {
-    const response = await fetch(`${this.baseURL}/historial/exportar/`, {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(`${this.baseURL}/historial/exportar/`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...this.getAuthHeaders(),
-      },
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {

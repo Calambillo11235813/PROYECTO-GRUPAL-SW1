@@ -1,4 +1,5 @@
 import { API_ENDPOINTS, getAuthHeaders } from './config';
+import { fetchWithAuth } from './fetchClient';
 
 const API_BASE_URL = API_ENDPOINTS.TEXTO; // ← MANTENER IGUAL
 
@@ -68,7 +69,7 @@ class TextAnalysisService {
     try {
       console.log('🔍 Verificando estado del servicio...');
       
-      const response = await fetch(`${this.baseURL}/`, { // ← RUTA ORIGINAL
+      const response = await fetchWithAuth(`${this.baseURL}/`, { // ← RUTA ORIGINAL
         method: 'GET',
         headers: this.getHeaders()
       });
@@ -99,7 +100,7 @@ class TextAnalysisService {
         throw new Error('Modelo debe ser "B" o "N"');
       }
 
-      const response = await fetch(`${this.baseURL}/analizar/`, { // ← RUTA ORIGINAL
+      const response = await fetchWithAuth(`${this.baseURL}/analizar/`, { // ← RUTA ORIGINAL
         method: 'POST',
         headers: this.getHeaders(true), // CORREGIDO: auth headers
         body: JSON.stringify({ 
@@ -130,7 +131,7 @@ class TextAnalysisService {
       
       const textoLimpio = this.validateText(texto);
 
-      const response = await fetch(`${this.baseURL}/comparar/`, { // ← RUTA ORIGINAL
+      const response = await fetchWithAuth(`${this.baseURL}/comparar/`, { // ← RUTA ORIGINAL
         method: 'POST',
         headers: this.getHeaders(true), // CORREGIDO: auth headers
         body: JSON.stringify({ texto: textoLimpio })
@@ -166,7 +167,7 @@ class TextAnalysisService {
       formData.append('archivo', validFile);
       formData.append('modelo', modelo.toUpperCase());
 
-      const response = await fetch(`${this.baseURL}/analizar-archivo/`, { // ← RUTA ORIGINAL
+      const response = await fetchWithAuth(`${this.baseURL}/analizar-archivo/`, { // ← RUTA ORIGINAL
         method: 'POST',
         headers: this.getHeaders(true, true), // CORREGIDO: FormData headers
         body: formData

@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 # Create your models here.
 
@@ -12,7 +12,7 @@ class AnalisisCodigo(models.Model):
     # ==========================
     # Información del archivo
     # ==========================
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     archivo = models.FileField(upload_to='codigo/')
     nombre_archivo = models.CharField(max_length=255)
     lenguaje = models.CharField(max_length=50, null=True, blank=True)

@@ -129,6 +129,7 @@ INSTALLED_APPS = [
     # Local apps - ORDEN IMPORTANTE
     'usuario',  # ← DEBE ir ANTES que 'texto'
     'texto',
+    'codigo',
     
     'audio.apps.AudioConfig',
 ]

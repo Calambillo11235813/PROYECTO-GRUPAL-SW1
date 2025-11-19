@@ -1,5 +1,5 @@
 # ANÁLISIS PROFUNDO DEL BACKEND - PROYECTO KLDC
-**Fecha:** 18 de Noviembre de 2025  
+**Fecha:** 19 de Noviembre de 2025  
 **Rama:** codigo  
 **Propósito:** Documentación completa de la arquitectura, flujos y patrones del backend
 
@@ -26,10 +26,10 @@
 Backend Django REST Framework para detección de contenido generado por IA en tres modalidades:
 - **Texto:** Análisis de documentos y texto directo
 - **Audio:** Verificación de autenticidad de archivos de audio
-- **Código:** Detección de código generado por IA (en desarrollo)
+- **Código:** Detección de código generado por IA (implementado)
 
 ### Stack Tecnológico
-- **Framework:** Django 5.2.5 + Django REST Framework
+- **Framework:** Django 5.2.8 + Django REST Framework
 - **Base de Datos:** PostgreSQL 14
 - **ML/IA:** PyTorch, Transformers (BERT), Scikit-learn (Random Forest)
 - **Procesamiento:** Librosa (audio), PyPDF2, python-docx (documentos)
@@ -70,10 +70,11 @@ Backend/
 │   ├── utils.py         # Generación de espectrogramas
 │   └── certificado_utils.py # Generación de PDFs
 │
-├── codigo/              # Detección de IA en código (WIP)
-│   ├── models.py        # CodigoUpload (pendiente)
-│   ├── views.py         # Endpoints (pendiente)
-│   └── utils_analysis.py # Análisis de código
+├── codigo/              # Detección de IA en código (implementado)
+│   ├── models.py        # AnalisisCodigo (registro completo de análisis)
+│   ├── views/           # Subir, historial, comparar, reporte, detalle
+│   ├── serializers.py   # Serializadores para salida detallada
+│   └── utils/           # Analizador AST, detector HF, heurísticas línea
 │
 ├── content/             # Modelos ML preentrenados
 │   └── rf_v1/           # Random Forest v1
@@ -105,7 +106,18 @@ Backend/
    - Evita recargar modelos pesados en cada request
 
 5. **Factory Pattern**
-   - `get_predictor(model_type)`: Factory para crear predictores
+  - `get_predictor(model_type)`: Factory para crear predictores
+
+---
+
+## 🔗 Interacciones Entre Componentes
+
+- **Usuario ↔ Audio:** `AudioUpload.user` referencia a `usuario.CustomUser`. En guardados se actualiza el conteo en `UserProfile.total_analyses` (intención del modelo); endpoints de audio requieren JWT (`IsAuthenticated`).
+- **Usuario ↔ Texto:** `AnalisisTexto`/`ArchivoAnalisis` se crean sin usuario (público), pero el modelo soporta asociar usuario si se agrega autenticación en vistas de `texto/`.
+- **Usuario ↔ Código:** `AnalisisCodigo.usuario` asocia análisis al usuario si está autenticado al subir.
+- **Core Settings:** `settings.py` centraliza validaciones (tipos MIME, tamaños), logging (logger "audio"), CORS y JWT. `AUTH_USER_MODEL='usuario.CustomUser'` definido antes de migraciones.
+- **ML Compartido:** Carga perezosa y cacheada: `texto/predictor.get_predictor` y `audio/rf_model`. Fallbacks de tokenizador/modelo para robustez.
+- **Media/Logs:** Archivos y espectrogramas por usuario en `media/audios/user_{id}/` y `media/plots/user_{id}/`. Logs en `logs/audio_analysis.log`.
 
 ---
 
@@ -264,7 +276,7 @@ RFAudioDetector:
 #### Flujo de Análisis de Audio
 
 ```
-POST /api/audio/
+POST /api/audio/upload/
 ├── Validación MultiPartParser
 ├── AudioUploadSerializer.validate_file()
 │   ├── Tipo de archivo (TIPOS_AUDIO_PERMITIDOS)
@@ -299,23 +311,38 @@ generar_certificado_pdf(audio_upload):
 
 #### Endpoints
 ```
-POST /api/audio/             - Subir y analizar audio
-GET  /api/audio/             - Historial de análisis
-GET  /api/audio/analysis/    - Audios del usuario autenticado
-GET  /api/audio/certificado/<id>/ - Descargar certificado PDF
+POST /api/audio/upload/            - Subir y analizar audio
+GET  /api/audio/                   - Historial del usuario autenticado
+GET  /api/audio/upload/            - Historial global (admin/depuración)
+GET  /api/audio/certificado/<id>/  - Descargar certificado PDF
+POST /api/audio/token/             - Obtener JWT (duplicado respecto a /api/auth/)
+POST /api/audio/token/refresh/     - Refrescar JWT
 ```
 
 ---
 
-### 4. CÓDIGO - Detección de IA en Código (En Desarrollo)
+### 4. CÓDIGO - Detección de IA en Código (Implementado)
 
 #### Estado Actual
-- Estructura básica creada
-- Modelos vacíos (`models.py`, `views.py`)
-- Modelo preentrenado disponible: `code_detection-model-complete/`
-- Pendiente de implementación completa
+- Implementado con modelo `AnalisisCodigo` que almacena: metadatos de archivo, resultado IA (bool + confianza + método + detalles), análisis sintáctico (AST, complejidad, patrones), líneas/bloques sospechosos y reportes (PDF/JSON), con `usuario` opcional (FK).
+- Vistas separadas: subir archivo, historial con filtros, comparador, estadísticas, exportación JSON, reporte PDF/JSON y detalle profesional.
+- Detector HF cargado de forma perezosa (`CodeDetectorHF`) con fallback seguro si faltan pesos.
 
-#### Recursos Disponibles
+#### Endpoints (`/api/codigo/`)
+```
+GET  /                    - Panel HTML (vista principal)
+POST /subir/              - Subir archivo y analizar
+GET  /analisis/<id>/      - Detalle profesional del análisis
+GET  /historial/          - Historial con filtros (nombre, lenguaje, IA, fechas)
+GET  /historial/comparar/ - Comparar 2 análisis vía query (?id1=&id2=)
+POST /historial/comparar/ - Comparar lista de IDs (JSON {ids:[]})
+GET  /historial/estadisticas/ - KPIs y promedios
+GET  /historial/exportar/ - Exportación JSON del historial
+GET  /reporte/pdf/<id>/   - Reporte en PDF
+GET  /reporte/json/<id>/  - Reporte JSON
+```
+
+#### Recursos de Modelo
 ```
 codigo/code_detection-model-complete/
 ├── config.json
@@ -323,22 +350,6 @@ codigo/code_detection-model-complete/
 ├── tokenizer.json
 ├── vocab.json
 └── USAGE_EXAMPLES.py
-```
-
-#### Arquitectura Planificada
-```python
-# Similar a texto/ pero con análisis específico de código
-CodigoUpload:
-  - file: FileField
-  - language: CharField (Python, JavaScript, etc.)
-  - result: CharField
-  - probability: FloatField
-  - created_at: DateTimeField
-  
-CodeAnalyzer:
-  - Tokenización específica para código
-  - Detección de patrones de IA
-  - Análisis de estilo y complejidad
 ```
 
 ---
@@ -656,15 +667,17 @@ Response (200):
 
 | Método | Endpoint | Auth | Descripción |
 |--------|----------|------|-------------|
-| POST | `/` | Sí | Subir y analizar audio |
-| GET | `/` | Sí | Historial de análisis |
-| GET | `/analysis/` | Sí | Audios del usuario |
+| POST | `/upload/` | Sí | Subir y analizar audio |
+| GET | `/` | Sí | Historial del usuario autenticado |
+| GET | `/upload/` | Sí | Historial global (admin/depuración) |
 | GET | `/certificado/<id>/` | Sí | Descargar certificado PDF |
+| POST | `/token/` | No | Obtener JWT (duplicado de `auth`) |
+| POST | `/token/refresh/` | No | Refrescar JWT |
 
 **Request/Response Examples:**
 
 ```json
-// POST /api/audio/
+// POST /api/audio/upload/
 Request: FormData
   file: AudioFile
 Headers:
@@ -687,6 +700,21 @@ Response (201):
 // GET /api/audio/certificado/15/
 Response: PDF File (application/pdf)
 ```
+
+### Código (`/api/codigo/`)
+
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|------|-------------|
+| GET | `/` | No | Panel HTML (vista principal) |
+| POST | `/subir/` | No | Subir archivo y analizar |
+| GET | `/analisis/<id>/` | No | Detalle profesional del análisis |
+| GET | `/historial/` | No | Historial con filtros (nombre, lenguaje, IA, fechas) |
+| GET | `/historial/comparar/` | No | Comparar 2 análisis (?id1=&id2=) |
+| POST | `/historial/comparar/` | No | Comparar lista de IDs (JSON {ids:[]}) |
+| GET | `/historial/estadisticas/` | No | KPIs y promedios |
+| GET | `/historial/exportar/` | No | Exportación JSON del historial |
+| GET | `/reporte/pdf/<id>/` | No | Reporte en PDF |
+| GET | `/reporte/json/<id>/` | No | Reporte JSON |
 
 ---
 
@@ -777,14 +805,13 @@ else:
     resultado = 'REAL'
 ```
 
-### Modelo de Código (En Desarrollo)
+### Modelo de Código (Implementado)
 
 **Ubicación:** `Backend/codigo/code_detection-model-complete/`
 
-**Arquitectura Planificada:**
-- Base: Transformer para código (CodeBERT-like)
-- Tokenización específica para sintaxis
-- Detección de patrones de generación automática
+**Arquitectura:**
+- Detector basado en Transformer (tipo CodeBERT) cargado perezosamente (`CodeDetectorHF`) con fallback seguro si faltan pesos.
+- Pipeline complementario: heurísticas por línea/bloque y análisis sintáctico (AST, complejidad ciclomatica, patrones, predictibilidad).
 
 ---
 
@@ -886,6 +913,21 @@ audio_upload = get_object_or_404(
 5. **DoS:** Límites de tamaño de archivo
 6. **Rate Limiting:** Pendiente de implementación
 
+### Hallazgos de Permisos y CORS (código real)
+
+- `REST_FRAMEWORK.DEFAULT_PERMISSION_CLASSES = AllowAny` (global) → todos los endpoints son públicos salvo que la vista declare permisos.
+- `audio/` aplica `IsAuthenticated` en `AudioUploadView`, `AudioAnalysisView` y en certificados.
+- `texto/` usa funciones con `@csrf_exempt` y sin autenticación → público; operaciones de ML potencialmente costosas.
+- `usuario/` marca `AllowAny` incluso en `profile`, `logout` y `users` → exposición indebida de datos/acciones.
+- `audio/urls.py` expone `token` y `token/refresh`; duplican endpoints de auth y deberían centralizarse bajo `/api/auth/`.
+- `CORS_ALLOW_ALL_ORIGINS=True` además de `CORS_ALLOWED_ORIGINS=[localhost:5173]` → solo aceptable en desarrollo.
+
+Recomendaciones rápidas:
+- Definir permisos explícitos por vista y endurecer el default a `IsAuthenticated` o per-app.
+- Mover endpoints JWT a `/api/auth/` exclusivamente y eliminar duplicados en `audio`.
+- Añadir throttling (anónimo/autenticado) para `/api/texto/*`.
+- Desactivar `CORS_ALLOW_ALL_ORIGINS` fuera de desarrollo.
+
 ---
 
 ## ⚙️ CONFIGURACIÓN Y DEPLOYMENT
@@ -898,7 +940,7 @@ POSTGRES_DB=proyecto_sw1
 POSTGRES_USER=sw1_user
 POSTGRES_PASSWORD=sw1_password
 DB_HOST=localhost
-DB_PORT=5433
+DB_PORT=5435
 
 # Django
 SECRET_KEY=django-insecure-^p=%8&dp...
@@ -983,7 +1025,7 @@ media/
 ### Dependencias (requirements.txt)
 
 **Core:**
-- Django==5.2.5
+- Django==5.2.8
 - djangorestframework
 - djangorestframework-simplejwt
 - django-cors-headers
@@ -1114,16 +1156,17 @@ def _aggregate_stats(self, x: np.ndarray) -> List[float]:
 ### Críticas
 
 1. **Falta de Rate Limiting**
-   - Endpoints públicos sin límite de requests
-   - Riesgo de abuso/DoS
+  - Endpoints públicos sin límite de requests
+  - Riesgo de abuso/DoS
 
-2. **Modelo de Código Sin Implementar**
-   - Estructura vacía en `codigo/`
-   - Modelo disponible pero sin integración
+2. **Permisos por Defecto Permisivos**
+  - `DEFAULT_PERMISSION_CLASSES = AllowAny` globalmente
+  - `usuario/` expone `profile`, `logout`, `users` con `AllowAny`
+  - `texto/` es público y costoso (ML) → susceptible a abuso
 
-3. **Permissions Inconsistentes**
-   - Algunos endpoints críticos con `AllowAny`
-   - `texto/` debería requerir autenticación
+3. **JWT Duplicado en `audio/`**
+  - `token/` y `token/refresh/` también existen en `audio/urls.py`
+  - Deben centralizarse bajo `/api/auth/` para coherencia
 
 4. **Falta de Tests Unitarios**
    - Archivos `tests.py` vacíos
@@ -1144,8 +1187,8 @@ def _aggregate_stats(self, x: np.ndarray) -> List[float]:
    - Mensajes de error poco descriptivos
 
 8. **Falta de Paginación**
-   - `GET /api/audio/` retorna todos los registros
-   - Problema de performance con muchos usuarios
+  - Listas sin paginar (p.ej. `GET /api/audio/upload/` global y `codigo/historial/`)
+  - Problema de performance con muchos registros
 
 9. **Sin Compresión de Media**
    - Espectrogramas PNG sin optimizar
@@ -1200,16 +1243,16 @@ Audio:
   - RF Model: ~50MB (model_rf.joblib)
   
 Código:
-  - CodeBERT: ~500MB (no integrado)
+  - CodeBERT: ~500MB (integrado vía carga perezosa)
 ```
 
-### Endpoints Totales
+### Endpoints Totales (aprox.)
 ```
 Autenticación: 5
 Texto: 7
-Audio: 4
-Código: 0 (pendiente)
-Total: 16 endpoints
+Audio: 6
+Código: 10
+Total: 28 endpoints
 ```
 
 ---
@@ -1269,7 +1312,7 @@ POST /api/texto/analizar-archivo/
 **3. Análisis de Audio:**
 ```javascript
 // Subir audio
-POST /api/audio/
+POST /api/audio/upload/
   → Headers: Authorization
   → FormData con archivo
   → Mostrar espectrograma
@@ -1302,7 +1345,7 @@ fetch(url, {
 ### Fortalezas del Sistema
 
 1. **Arquitectura Modular:** Separación clara de responsabilidades
-2. **Múltiples Modalidades:** Texto, audio, código (en desarrollo)
+2. **Múltiples Modalidades:** Texto, audio, código (implementado)
 3. **ML Robusto:** Modelos preentrenados con fallbacks
 4. **Autenticación Moderna:** JWT con refresh tokens
 5. **Validación Exhaustiva:** Serializers y validators en múltiples capas
@@ -1311,7 +1354,7 @@ fetch(url, {
 ### Oportunidades de Mejora
 
 1. Implementar rate limiting y throttling
-2. Completar módulo de código
+2. Endurecer permisos (`usuario/`, `texto/`) y centralizar JWT
 3. Añadir tests unitarios comprehensivos
 4. Optimizar performance con caché
 5. Migrar a tareas asíncronas (Celery)
@@ -1321,10 +1364,10 @@ fetch(url, {
 ### Próximos Pasos Recomendados
 
 1. **Corto Plazo (1-2 semanas):**
-   - Implementar endpoint de código
-   - Añadir rate limiting básico
-   - Completar tests críticos
-   - Documentar API con Swagger
+  - Añadir rate limiting básico (throttling DRF)
+  - Endurecer permisos y mover JWT sólo a `/api/auth/`
+  - Completar tests críticos (texto/audio/código)
+  - Documentar API con Swagger
 
 2. **Mediano Plazo (1 mes):**
    - Implementar Celery para tasks pesadas
@@ -1341,6 +1384,6 @@ fetch(url, {
 ---
 
 **Documento generado:** 18/11/2025  
-**Última actualización:** 18/11/2025  
+**Última actualización:** 19/11/2025  
 **Autor:** Análisis automatizado del backend  
 **Versión:** 1.0.0

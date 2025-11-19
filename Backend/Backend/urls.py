@@ -13,6 +13,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('usuario.urls')),  # Include usuario URLs under /api/auth/
     path('api/audio/', include('audio.urls')),
+    path('api/codigo/', include('codigo.urls')),
     path('api/texto/', include('texto.urls')),
 ]
 

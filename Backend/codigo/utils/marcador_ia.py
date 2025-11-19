@@ -21,9 +21,13 @@ def marcar_lineas_sospechosas(codigo_texto: str, tam_bloque=8, umbral=0.70):
         fin = min(inicio + tam_bloque, total)
         bloque = "\n".join(lineas[inicio:fin])
 
-        # IA real por bloque (CORRECTO)
-        resultado = get_detector().analizar(bloque)
-        score = resultado["confidence"]
+        # IA real por bloque (robusto con fallback)
+        try:
+            resultado = get_detector().analizar(bloque)
+            score = float(resultado.get("confidence", 0.0))
+        except Exception:
+            # Nunca fallar el marcado por ausencia/errores del modelo
+            score = 0.0
 
         if score >= umbral:
             bloques_sospechosos.append({

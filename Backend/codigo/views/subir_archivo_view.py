@@ -10,9 +10,7 @@ from ..utils.marcador_ia import marcar_lineas_sospechosas
 from ..utils.detectar_lenguaje import detectar_lenguaje
 
 # IMPORTANTE: usar el nuevo modelo
-from ..modelos.detector_hf import CodeDetectorHF
-
-IA_MODEL = CodeDetectorHF()   # carga el modelo SOLO 1 VEZ
+from ..modelos.production_code_detector import get_detector
 
 class SubirCodigoView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -38,19 +36,19 @@ class SubirCodigoView(APIView):
         obj.lenguaje = detectar_lenguaje(obj.nombre_archivo, codigo)
 
         # ============================
-        # IA REAL (CodeBERT)
+        # IA (CodeBERT) con fallback centralizado
         # ============================
-        ia = IA_MODEL.analizar(codigo)
+        detector = get_detector()
+        ia = detector.analizar(codigo)
 
-        obj.ia_es_generado = ia["is_ai_generated"]
-        obj.ia_confianza = ia["confidence"]
-        obj.ia_metodo = ia["method_used"]
+        obj.ia_es_generado = ia.get("is_ai_generated", False)
+        obj.ia_confianza = ia.get("confidence", 0.0)
+        obj.ia_metodo = ia.get("method_used", "unknown")
         obj.ia_detalles = ia
 
-
-        # Guardar versión del modelo y timestamp
-        obj.version_modelo = IA_MODEL.version
-        obj.timestamp_modelo = IA_MODEL.timestamp
+        # Guardar versión del modelo y timestamp (si existen en el detector)
+        obj.version_modelo = getattr(detector, "version", "none")
+        obj.timestamp_modelo = getattr(detector, "timestamp", None)
         
         # ============================
         # IA por líneas ()

@@ -143,6 +143,41 @@ NOTA:
     • No usa internet.
     • Todo se ejecuta localmente.
 
+--------------------------------------------------------
+📦 Cómo instalar/colocar el modelo (HuggingFace)
+--------------------------------------------------------
+
+El detector espera un checkpoint de Transformers en `Backend/codigo/modelo_ia/` con:
+- Pesos: `pytorch_model.bin` o `model.safetensors`
+- Configuración: `config.json`
+- Tokenizador: `tokenizer.json` (o archivos `vocab.json` + `merges.txt`, según el modelo)
+
+Ejemplo (placeholder) para descargar y guardar un modelo en local:
+
+PowerShell (desde `Backend/`):
+
+```
+./venv/Scripts/python.exe -c "from transformers import AutoModelForSequenceClassification, AutoTokenizer; import os; m='bert-base-uncased'; d=os.path.join(os.getcwd(),'codigo','modelo_ia'); os.makedirs(d, exist_ok=True); AutoTokenizer.from_pretrained(m).save_pretrained(d); AutoModelForSequenceClassification.from_pretrained(m, num_labels=2).save_pretrained(d)"
+```
+
+Importante: el modelo anterior es solo para satisfacer la estructura de archivos. Para detección IA real de código, usa un modelo entrenado para esa tarea y guarda su checkpoint en `codigo/modelo_ia/`.
+
+--------------------------------------------------------
+🛟 Fallback seguro (sin pesos locales)
+--------------------------------------------------------
+
+Si no existen pesos HF, el sistema usa un detector "dummy" que:
+- Nunca lanza excepción
+- Responde `ia_metodo: "fallback"` y `ia_confianza: 0.0`
+
+Puedes forzar este modo en desarrollo sin intentar cargar HF usando la variable de entorno:
+
+```
+CODE_DETECTOR_FORCE_FALLBACK=1
+```
+
+Sugerido: copia `Backend/.env.example` a `Backend/.env` y deja `CODE_DETECTOR_FORCE_FALLBACK=1` en dev.
+
 ========================================================
 🔹 4. MODELO AnalisisCodigo — CAMPOS EXPLICADOS
 ========================================================
@@ -185,3 +220,35 @@ PASOS:
     9. Ver gráfica estadística.
 
 ========================================================
+🔹 6. Pruebas rápidas (API / consola)
+========================================================
+
+1) Subir archivo por API (Django test client desde consola):
+
+PowerShell (desde `Backend/`):
+
+```
+./venv/Scripts/python.exe -c "import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE','Backend.settings'); django.setup(); from django.test import Client; from django.core.files.uploadedfile import SimpleUploadedFile as SUF; c=Client(); r=c.post('/api/codigo/subir/', {'archivo': SUF('foo.py', b'print(123)')}); print(r.status_code); print(r.json())"
+```
+
+2) Ver detalle de un análisis creado (reemplaza <ID>):
+
+```
+curl -X GET http://127.0.0.1:8000/api/codigo/analisis/<ID>/
+```
+
+3) Exportar PDF/JSON (reemplaza <ID>):
+
+```
+curl -X GET -o reporte.pdf http://127.0.0.1:8000/api/codigo/reporte/pdf/<ID>/
+curl -X GET -o reporte.json http://127.0.0.1:8000/api/codigo/reporte/json/<ID>/
+```
+
+4) Forzar fallback solo para esta sesión PowerShell:
+
+```
+$env:CODE_DETECTOR_FORCE_FALLBACK="1"
+```
+
+5) Recomendado en desarrollo: usar `.env` con `CODE_DETECTOR_FORCE_FALLBACK=1` y añadir modelo real más adelante en `codigo/modelo_ia/`.
+
