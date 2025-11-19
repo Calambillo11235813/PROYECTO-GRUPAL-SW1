@@ -29,11 +29,7 @@ const AnalysisResults = ({ analysisData }) => {
     return "text-yellow-400";
   };
 
-  const getConfidenceBg = (confidence) => {
-    if (confidence >= 0.8) return "bg-red-500/20 border-red-500/50";
-    if (confidence >= 0.6) return "bg-orange-500/20 border-orange-500/50";
-    return "bg-yellow-500/20 border-yellow-500/50";
-  };
+
 
   return (
     <div className="space-y-6">

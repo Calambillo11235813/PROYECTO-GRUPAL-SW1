@@ -12,7 +12,7 @@ import {
   FileText,
   Eye,
 } from "lucide-react";
-import codeAnalysisService from "../../../services/codeAnalysisService";
+import codeAnalysisService from "../../services/codeAnalysisService";
 import { useNavigate } from "react-router-dom";
 
 const CodeHistory = () => {
@@ -32,21 +32,21 @@ const CodeHistory = () => {
   });
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    const loadHistory = async () => {
+      setLoading(true);
+      try {
+        const data = await codeAnalysisService.getHistory(filters);
+        setHistory(data);
+        setFilteredHistory(data);
+      } catch (error) {
+        console.error("Error al cargar historial:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadHistory = async () => {
-    setLoading(true);
-    try {
-      const data = await codeAnalysisService.getHistory(filters);
-      setHistory(data);
-      setFilteredHistory(data);
-    } catch (error) {
-      console.error("Error al cargar historial:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadHistory();
+  }, [filters]);
 
   const applyFilters = async () => {
     setLoading(true);

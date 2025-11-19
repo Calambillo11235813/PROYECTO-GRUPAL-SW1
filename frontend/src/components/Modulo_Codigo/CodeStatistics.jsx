@@ -7,27 +7,27 @@ import {
   PieChart,
   CheckCircle2,
 } from "lucide-react";
-import codeAnalysisService from "../../../services/codeAnalysisService";
+import codeAnalysisService from "../../services/codeAnalysisService";
 
 const CodeStatistics = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadStatistics = async () => {
+      setLoading(true);
+      try {
+        const data = await codeAnalysisService.getStatistics();
+        setStats(data);
+      } catch (error) {
+        console.error("Error al cargar estadísticas:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadStatistics();
   }, []);
-
-  const loadStatistics = async () => {
-    setLoading(true);
-    try {
-      const data = await codeAnalysisService.getStatistics();
-      setStats(data);
-    } catch (error) {
-      console.error("Error al cargar estadísticas:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

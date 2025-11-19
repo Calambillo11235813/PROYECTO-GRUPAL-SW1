@@ -10,7 +10,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import codeAnalysisService from "../../../services/codeAnalysisService";
+import codeAnalysisService from "../../services/codeAnalysisService";
 import AnalysisResults from "./AnalysisResults";
 
 const AnalysisDetail = () => {
@@ -22,20 +22,20 @@ const AnalysisDetail = () => {
   const [showAST, setShowAST] = useState(false);
 
   useEffect(() => {
-    loadAnalysisDetail();
-  }, [id]);
+    const loadAnalysisDetail = async () => {
+      setLoading(true);
+      try {
+        const data = await codeAnalysisService.getAnalysisDetail(id);
+        setAnalysisData(data);
+      } catch (error) {
+        console.error("Error al cargar análisis:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadAnalysisDetail = async () => {
-    setLoading(true);
-    try {
-      const data = await codeAnalysisService.getAnalysisDetail(id);
-      setAnalysisData(data);
-    } catch (error) {
-      console.error("Error al cargar análisis:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (id) loadAnalysisDetail();
+  }, [id]);
 
   const handleDownloadPDF = async () => {
     try {

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Upload, File, X, CheckCircle2, AlertCircle } from "lucide-react";
-import codeAnalysisService from "../../../services/codeAnalysisService";
+import codeAnalysisService from "../../services/codeAnalysisService";
 
 const CodeUploader = ({ onAnalysisComplete }) => {
   const [file, setFile] = useState(null);

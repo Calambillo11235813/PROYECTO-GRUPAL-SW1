@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
-import codeAnalysisService from "../../../services/codeAnalysisService";
+import codeAnalysisService from "../../services/codeAnalysisService";
 
 const CompareAnalysis = () => {
   const [searchParams] = useSearchParams();
@@ -18,24 +18,24 @@ const CompareAnalysis = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadComparison = async (ids) => {
+      setLoading(true);
+      try {
+        const data = await codeAnalysisService.compareAnalysis(ids);
+        setComparisonData(data);
+      } catch (error) {
+        console.error("Error al comparar:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const ids = searchParams.get("ids");
     if (ids) {
       const idArray = ids.split(",").map((id) => parseInt(id));
       loadComparison(idArray);
     }
   }, [searchParams]);
-
-  const loadComparison = async (ids) => {
-    setLoading(true);
-    try {
-      const data = await codeAnalysisService.compareAnalysis(ids);
-      setComparisonData(data);
-    } catch (error) {
-      console.error("Error al comparar:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -81,7 +81,7 @@ const CompareAnalysis = () => {
 
         {/* Comparison Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {comparisonData.comparaciones.map((item, index) => (
+          {comparisonData.comparaciones.map((item) => (
             <div
               key={item.id}
               className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 hover:border-cyan-500/50 transition-all"
