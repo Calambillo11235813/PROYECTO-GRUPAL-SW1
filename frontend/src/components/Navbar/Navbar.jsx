@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import NavItem from './NavItem';
-import MobileMenu from './MobileMenu';
+import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import NavItem from "./NavItem";
+import MobileMenu from "./MobileMenu";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -9,33 +9,33 @@ const Navbar = () => {
 
   // Definición de módulos para la navegación
   const modules = [
-    { 
-      name: 'Texto', 
-      path: '/text', 
-      icon: '📝', 
-      isActive: true 
+    {
+      name: "Texto",
+      path: "/text",
+      icon: "📝",
+      isActive: true,
     },
-    { 
-      name: 'Audio', 
-      path: '/audio', 
-      icon: '🔊', 
-      isActive: true,      // Cambia a true
-      comingSoon: false    // Cambia a false
+    {
+      name: "Audio",
+      path: "/audio",
+      icon: "🔊",
+      isActive: true,
+      comingSoon: false,
     },
-    { 
-      name: 'Código', 
-      path: '/code', 
-      icon: '💻', 
-      isActive: false,  // Cambiar a true cuando implementes este módulo
-      comingSoon: true
+    {
+      name: "Código",
+      path: "/codigo",
+      icon: "💻",
+      isActive: true,
+      comingSoon: false,
     },
-    { 
-      name: 'Video', 
-      path: '/video', 
-      icon: '🎬', 
-      isActive: false,  // Cambiar a true cuando implementes este módulo
-      comingSoon: true
-    }
+    {
+      name: "Video",
+      path: "/video",
+      icon: "🎬",
+      isActive: false,
+      comingSoon: true,
+    },
   ];
 
   return (
@@ -56,12 +56,14 @@ const Navbar = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-center space-x-4">
               {modules.map((module) => (
-                <NavItem 
+                <NavItem
                   key={module.name}
                   name={module.name}
                   path={module.path}
                   icon={module.icon}
-                  isActive={module.isActive && location.pathname.includes(module.path)}
+                  isActive={
+                    module.isActive && location.pathname.includes(module.path)
+                  }
                   comingSoon={module.comingSoon}
                 />
               ))}
@@ -70,8 +72,8 @@ const Navbar = () => {
 
           {/* Botón de perfil/configuración */}
           <div className="hidden md:block">
-            <Link 
-              to="/profile" 
+            <Link
+              to="/profile"
               className="text-slate-300 hover:text-cyan-400 transition-colors p-2 rounded-full hover:bg-slate-800"
             >
               <span className="sr-only">Perfil</span>
@@ -89,12 +91,36 @@ const Navbar = () => {
               <span className="sr-only">Abrir menú principal</span>
               {/* Icono de menú/cerrar */}
               {isMobileMenuOpen ? (
-                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               ) : (
-                <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="block h-6 w-6"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               )}
             </button>
@@ -103,10 +129,10 @@ const Navbar = () => {
       </div>
 
       {/* Menú móvil */}
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
-        modules={modules} 
-        currentPath={location.pathname} 
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        modules={modules}
+        currentPath={location.pathname}
       />
 
       {/* Efecto de línea neón */}

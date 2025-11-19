@@ -11,6 +11,9 @@ import { Login, Dashboard } from "./pages/pageExports";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import DashboardAudio from "./pages/Dashboard_Audio";
+import DashboardCodigo from "./pages/Dashboard_Codigo";
+import AnalysisDetail from "./components/Modulo_Codigo/AnalysisDetail";
+import CompareAnalysis from "./components/Modulo_Codigo/CompareAnalysis";
 import "./App.css";
 import Navbar from "./components/Navbar/Navbar";
 
@@ -37,6 +40,30 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <DashboardAudio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/codigo"
+            element={
+              <ProtectedRoute>
+                <DashboardCodigo />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/codigo/analisis/:id"
+            element={
+              <ProtectedRoute>
+                <AnalysisDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/codigo/comparar"
+            element={
+              <ProtectedRoute>
+                <CompareAnalysis />
               </ProtectedRoute>
             }
           />
