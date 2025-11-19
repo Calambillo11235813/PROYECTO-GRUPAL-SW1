@@ -32,6 +32,10 @@ staticfiles/
 .env
 /Backend/venv
 
+# Ignore virtualenv created in Backend (common names)
+Backend/.venv
+.venv
+
 
 *.csv
 !Backend/texto/Dataset/*.csv

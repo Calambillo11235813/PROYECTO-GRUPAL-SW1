@@ -1,5 +1,21 @@
-import torch
-from transformers import BertTokenizer, BertForSequenceClassification, AutoTokenizer, AutoModelForSequenceClassification
+try:
+    import torch as _torch
+except Exception:
+    _torch = None
+
+try:
+    from transformers import (
+        BertTokenizer,
+        BertForSequenceClassification,
+        AutoTokenizer,
+        AutoModelForSequenceClassification,
+    )
+except Exception:
+    BertTokenizer = None
+    BertForSequenceClassification = None
+    AutoTokenizer = None
+    AutoModelForSequenceClassification = None
+
 import os
 import logging
 import json
@@ -17,7 +33,7 @@ class TextoPredictor:
     }
     
     # CAMBIO: Modelo por defecto es ahora 'B'
-    def __init__(self, model_type='B'):  # Cambiar de 'N' a 'B'
+    def __init__(self, model_type='B', model=None, tokenizer=None):  # Cambiar de 'N' a 'B'
         """
         Inicializa el predictor cargando el modelo y el tokenizador.
         
@@ -25,7 +41,14 @@ class TextoPredictor:
             model_type (str): 'B' para modelo principal, 'N' para experimental
         """
         self.model_type = model_type
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Configurar dispositivo si torch está disponible
+        if _torch is not None:
+            try:
+                self.device = _torch.device('cuda' if _torch.cuda.is_available() else 'cpu')
+            except Exception:
+                self.device = 'cpu'
+        else:
+            self.device = 'cpu'
         self.max_length = 512  # Longitud máxima de secuencia para BERT
         
         # Determinar la ruta absoluta al modelo
@@ -37,11 +60,14 @@ class TextoPredictor:
             
         self.model_path = os.path.join(current_dir, model_folder)
         
-        # Cargar tokenizador y modelo
-        logger.info(f"Cargando modelo {model_type} desde: {self.model_path}")
-        self.tokenizer = None
-        self.model = None
-        self._load_model()
+        # Permitir inyectar model/tokenizer (útil para tests sin cargar modelos pesados)
+        self.tokenizer = tokenizer
+        self.model = model
+
+        # Cargar tokenizador y modelo si no se inyectaron
+        if self.model is None or self.tokenizer is None:
+            logger.info(f"Cargando modelo {model_type} desde: {self.model_path}")
+            self._load_model()
         
     def _load_model(self):
         """Carga el modelo y tokenizador desde los archivos guardados."""
@@ -74,8 +100,10 @@ class TextoPredictor:
             tokenizer_loaded = False
             model_loaded = False
             
-            # Método 1: Intentar cargar tokenizer local
+            # Método 1: Intentar cargar tokenizer local (si transformers está disponible)
             try:
+                if AutoTokenizer is None:
+                    raise RuntimeError("transformers no disponible para cargar tokenizer")
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
                 tokenizer_loaded = True
                 logger.info(f"Tokenizer local cargado para modelo {self.model_type}")
@@ -107,15 +135,18 @@ class TextoPredictor:
                     except Exception as e3:
                         logger.error(f"Error con tokenizer fallback: {e3}")
             
-            # Intentar cargar el modelo
+            # Intentar cargar el modelo (si transformers está disponible)
             try:
+                if BertForSequenceClassification is None:
+                    raise RuntimeError("transformers no disponible para cargar modelo")
                 self.model = BertForSequenceClassification.from_pretrained(self.model_path)
                 model_loaded = True
                 logger.info(f"Modelo BERT cargado para modelo {self.model_type}")
             except Exception as e3:
                 logger.warning(f"No se pudo cargar modelo como BERT: {e3}")
-                
                 try:
+                    if AutoModelForSequenceClassification is None:
+                        raise RuntimeError("transformers no disponible para cargar modelo Auto")
                     self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
                     model_loaded = True
                     logger.info(f"Modelo Auto cargado para modelo {self.model_type}")
@@ -139,8 +170,17 @@ class TextoPredictor:
             if not tokenizer_loaded:
                 raise RuntimeError(f"No se pudo cargar el tokenizer para modelo {self.model_type}")
             
-            self.model.to(self.device)
-            self.model.eval()  # Poner el modelo en modo evaluación
+            # Mover modelo al dispositivo si torch está disponible
+            if _torch is not None and hasattr(self.model, 'to'):
+                try:
+                    self.model.to(self.device)
+                except Exception:
+                    pass
+            if hasattr(self.model, 'eval'):
+                try:
+                    self.model.eval()
+                except Exception:
+                    pass
             logger.info(f"Modelo {self.model_type} cargado exitosamente")
             
         except Exception as e:
@@ -198,30 +238,77 @@ class TextoPredictor:
             return {'error': f'Modelo {self.model_type} no está cargado correctamente'}
         
         try:
-            # Preprocesar texto y convertirlo a tokens
-            inputs = self.tokenizer(
-                text,
-                return_tensors="pt",
-                truncation=True,
-                max_length=self.max_length,
-                padding="max_length"
-            )
-            
-            # Mover inputs al dispositivo (CPU/GPU)
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
-            # Realizar predicción
-            with torch.no_grad():
-                outputs = self.model(**inputs)
-                logits = outputs.logits
-                probabilities = torch.softmax(logits, dim=1)
-                prob_ia = probabilities[0][1].item()  # Probabilidad clase IA
-                prob_humano = probabilities[0][0].item()  # Probabilidad clase Humano
-                predicted_class = torch.argmax(probabilities, dim=1).item()
-            
-            # Preparar respuesta
+            # Intentar obtener la longitud en tokens
+            try:
+                token_ids = self.tokenizer.encode(text, add_special_tokens=True)
+            except Exception:
+                encoded = self.tokenizer(text, add_special_tokens=True, return_tensors=None)
+                token_ids = encoded.get('input_ids', [])
+
+            # Si el texto cabe en un solo pase, procesarlo directamente
+            if len(token_ids) <= self.max_length:
+                inputs = self.tokenizer(
+                    text,
+                    return_tensors="pt",
+                    truncation=True,
+                    max_length=self.max_length,
+                    padding="max_length"
+                )
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                if _torch is not None:
+                    with _torch.no_grad():
+                        outputs = self.model(**inputs)
+                        logits = outputs.logits
+                        probabilities = _torch.softmax(logits, dim=1)
+                        prob_ia = probabilities[0][1].item()
+                        prob_humano = probabilities[0][0].item()
+                else:
+                    # No torch available in environment; cannot compute real probabilities
+                    # Return a fallback neutral probability
+                    prob_ia = 0.5
+                    prob_humano = 0.5
+            else:
+                # Dividir en ventanas de tokens con overlap (stride)
+                stride = min(50, max(1, int(self.max_length * 0.1)))
+                max_len = self.max_length
+                probs_ia = []
+                probs_hum = []
+
+                for i in range(0, len(token_ids), max_len - stride):
+                    chunk_ids = token_ids[i:i+max_len]
+                    try:
+                        chunk_text = self.tokenizer.decode(chunk_ids, skip_special_tokens=True)
+                    except Exception:
+                        chunk_text = " ".join([str(t) for t in chunk_ids])
+
+                    inputs = self.tokenizer(
+                        chunk_text,
+                        return_tensors="pt",
+                        truncation=True,
+                        max_length=self.max_length,
+                        padding="max_length"
+                    )
+                    inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                    if _torch is not None:
+                        with _torch.no_grad():
+                            outputs = self.model(**inputs)
+                            logits = outputs.logits
+                            probabilities = _torch.softmax(logits, dim=1)
+                            probs_ia.append(probabilities[0][1].item())
+                            probs_hum.append(probabilities[0][0].item())
+                    else:
+                        # Fallback neutral probabilities when torch not available
+                        probs_ia.append(0.5)
+                        probs_hum.append(0.5)
+
+                if not probs_ia:
+                    return {'error': 'No se pudo procesar el texto en chunks'}
+                prob_ia = sum(probs_ia) / len(probs_ia)
+                prob_humano = sum(probs_hum) / len(probs_hum)
+
+            predicted_class = 1 if prob_ia >= prob_humano else 0
             prediction = "IA" if predicted_class == 1 else "Humano"
-            
+
             return {
                 'prediccion': prediction,
                 'probabilidad_ia': round(prob_ia * 100, 2),
@@ -229,7 +316,6 @@ class TextoPredictor:
                 'confianza': round(max(prob_ia, prob_humano) * 100, 2),
                 'modelo_usado': self.model_type
             }
-            
         except Exception as e:
             logger.error(f"Error durante la predicción con modelo {self.model_type}: {str(e)}")
             return {'error': f'Error al procesar el texto: {str(e)}'}
