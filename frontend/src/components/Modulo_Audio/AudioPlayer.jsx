@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Play, Pause, RefreshCw, FileAudio, FileText } from 'lucide-react';
 
 const AudioPlayer = ({ audioUrl, fileName, onDownloadCertificate }) => {
@@ -7,154 +7,62 @@ const AudioPlayer = ({ audioUrl, fileName, onDownloadCertificate }) => {
   const [error, setError] = useState(null);
   const audioRef = useRef(null);
 
-  // Handle play/pause
-  const togglePlayPause = useCallback(async () => {
-    if (!audioRef.current) return;
-    
-    try {
-      if (isPlaying) {
-        await audioRef.current.pause();
-      } else {
-        await audioRef.current.play();
-      }
-    } catch (e) {
-      console.error('Error al reproducir/pausar:', e);
-      setError('No se pudo reproducir el audio');
-      setLoading(false);
-      setIsPlaying(false);
-    }
-  }, [isPlaying]);
-
-  // Handle audio source changes and event listeners
+  // Resetear estados cuando cambia la URL
   useEffect(() => {
-    // Create a new audio element with preload set to 'metadata'
-    const audio = new Audio();
-    audio.preload = 'metadata';
-    audioRef.current = audio;
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
-    
-    const handleError = (e) => {
-      console.error('Audio error:', e);
-      setError('No se puede reproducir el audio');
-      setLoading(false);
-      setIsPlaying(false);
-    };
-    
-    const handleLoadedData = () => {
-      setLoading(false);
-      setError(null);
-    };
-    
-    // Add event listeners
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('loadeddata', handleLoadedData);
-    audio.addEventListener('ended', handleEnded);
-    
-    // Set initial source if available
     if (audioUrl) {
-      audio.src = audioUrl;
-      try {
-        // Some browsers might not return a Promise from load()
-        const loadPromise = audio.load();
-        if (loadPromise && typeof loadPromise.catch === 'function') {
-          loadPromise.catch(handleError);
-        }
-      } catch (e) {
-        handleError(e);
-      }
+      setLoading(true);
+      setError(null);
+      setIsPlaying(false);
     }
-    
-    // Cleanup function
-    return () => {
-      audio.pause();
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('loadeddata', handleLoadedData);
-      audio.removeEventListener('ended', handleEnded);
-      
-      // Clean up the audio element
-      audio.src = '';
-      if (audioRef.current === audio) {
-        audioRef.current = null;
-      }
-    };
   }, [audioUrl]);
 
-  // Update audio source when URL changes
-  useEffect(() => {
+  const togglePlayPause = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    
-    // Reset state for new audio
-    setLoading(true);
-    setError(null);
-    setIsPlaying(false);
-    
-    if (!audioUrl) {
-      setLoading(false);
-      setError('No hay URL de audio disponible');
-      return;
-    }
-    
-    // Set the new source
-    audio.src = audioUrl;
-    
-    // Handle audio loading with better cross-browser support
-    const handleCanPlay = () => {
-      setLoading(false);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('error', handleLoadError);
-    };
-    
-    const handleLoadError = (err) => {
-      console.error('Error al cargar el audio:', err);
-      setError('Error al cargar el audio');
-      setLoading(false);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('error', handleLoadError);
-    };
-    
-    // Add event listeners
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('error', handleLoadError);
-    
-    // Try to load the audio
+
     try {
-      const loadPromise = audio.load();
-      if (loadPromise && typeof loadPromise.catch === 'function') {
-        loadPromise.catch(handleLoadError);
+      if (audio.paused) {
+        await audio.play();
+      } else {
+        audio.pause();
       }
     } catch (e) {
-      handleLoadError(e);
+      console.error('Error al interactuar con el audio:', e);
     }
+  }, []);
+
+  // Manejo de eventos del audio nativo
+  const handleLoadedData = () => {
+    setLoading(false);
+    setError(null);
+  };
+
+  const handleError = (e) => {
+    const audio = e.target;
+    console.error('Error nativo de audio:', audio.error);
     
-    // Set a timeout in case the audio never loads
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn('Audio loading timed out');
-        setLoading(false);
-        audio.removeEventListener('canplay', handleCanPlay);
-        audio.removeEventListener('error', handleLoadError);
+    let msg = 'No se puede reproducir el audio';
+    if (audio.error) {
+      switch (audio.error.code) {
+        case 1: msg = 'Aborted: La carga fue cancelada'; break;
+        case 2: msg = 'Network: Error de red al cargar'; break;
+        case 3: msg = 'Decode: Error al decodificar el audio'; break;
+        case 4: msg = 'Source Not Supported: Formato no soportado o URL inválida'; break;
+        default: break;
       }
-    }, 10000); // 10 seconds timeout
-    
-    // Cleanup function
-    return () => {
-      clearTimeout(timeoutId);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('error', handleLoadError);
-    };
-  }, [audioUrl, loading]);
+    }
+    setError(msg);
+    setLoading(false);
+    setIsPlaying(false);
+  };
+
+  const handlePlay = () => setIsPlaying(true);
+  const handlePause = () => setIsPlaying(false);
+  const handleEnded = () => setIsPlaying(false);
 
   return (
-    <div className="mb-4 bg-slate-800/50 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-2">
+    <div className="mb-4 bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
+      <div className="flex items-center justify-between mb-3">
         <h4 className="text-cyan-400 font-medium flex items-center space-x-2">
           <FileAudio className="w-5 h-5" />
           <span>Audio</span>
@@ -162,61 +70,74 @@ const AudioPlayer = ({ audioUrl, fileName, onDownloadCertificate }) => {
         {onDownloadCertificate && (
           <button
             onClick={onDownloadCertificate}
-            className="flex items-center space-x-1 px-3 py-1.5 text-sm rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors"
+            className="flex items-center space-x-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors border border-cyan-500/20"
             title="Descargar certificado"
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="w-3 h-3" />
             <span>Certificado</span>
           </button>
         )}
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center p-4">
-          <RefreshCw className="w-5 h-5 animate-spin text-cyan-400 mr-2" />
-          <span className="text-slate-400">Cargando audio…</span>
-        </div>
-      ) : error ? (
-        <div className="text-center py-4 text-orange-400">
+      {/* Mensaje de error */}
+      {error && (
+        <div className="text-center py-2 mb-2 bg-red-500/10 rounded text-red-400 text-sm border border-red-500/20">
           {error}
         </div>
-      ) : (
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={togglePlayPause}
-            className={`p-2 rounded-full transition-all duration-200 ${
-              loading 
-                ? 'bg-slate-700 text-slate-500 cursor-not-allowed' 
-                : isPlaying 
-                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                  : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 hover:scale-105'
-            }`}
-            aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
-            disabled={!audioUrl || loading}
-          >
-            {loading ? (
-              <RefreshCw className="w-5 h-5 animate-spin" />
-            ) : isPlaying ? (
-              <Pause className="w-5 h-5" />
-            ) : (
-              <Play className="w-5 h-5" />
-            )}
-          </button>
-          <div className="flex-1 min-w-0">
-            <audio 
-              ref={audioRef} 
-              src={audioUrl} 
-              className="w-full"
+      )}
+
+      <div className="flex items-center space-x-4">
+        {/* Botón de Control */}
+        <button
+          onClick={togglePlayPause}
+          disabled={loading || !!error || !audioUrl}
+          className={`p-3 rounded-full transition-all duration-200 flex-shrink-0 ${
+            loading || !audioUrl
+              ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+              : isPlaying
+                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:scale-105 border border-red-500/30'
+                : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 hover:scale-105 border border-cyan-500/30'
+          }`}
+        >
+          {loading ? (
+            <RefreshCw className="w-5 h-5 animate-spin" />
+          ) : isPlaying ? (
+            <Pause className="w-5 h-5 fill-current" />
+          ) : (
+            <Play className="w-5 h-5 fill-current" />
+          )}
+        </button>
+
+        {/* Player Nativo (Oculto visualmente pero funcional) y metadatos */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
+            {/* Usamos el tag audio real.
+               React maneja los eventos directamente con props (onPlay, onPause, etc)
+               Esto es mucho más seguro que addEventListener manuales.
+            */}
+            <audio
+              ref={audioRef}
+              src={audioUrl}
               preload="metadata"
+              onPlay={handlePlay}
+              onPause={handlePause}
+              onEnded={handleEnded}
+              onLoadedData={handleLoadedData}
+              onError={handleError}
+              className="hidden" // Lo ocultamos para usar nuestros controles personalizados
             />
+            
+            {/* Barra de progreso visual simple (opcional, solo estética) */}
+            <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mb-2">
+                <div className={`h-full bg-cyan-500 ${loading ? 'animate-pulse w-full opacity-50' : 'w-0'}`} />
+            </div>
+
             {fileName && (
-              <div className="text-xs text-slate-400 mt-1 truncate" title={fileName}>
+              <div className="text-xs text-slate-400 truncate font-mono" title={fileName}>
                 {fileName}
               </div>
             )}
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
