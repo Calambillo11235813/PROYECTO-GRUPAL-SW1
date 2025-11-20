@@ -60,18 +60,41 @@ class TruthScanClient:
         self._ensure_success(response)
         return response.json()
 
-    def upload_file(self, presigned_url: str, file_bytes: bytes, content_type: str) -> None:
-        headers = {"Content-Type": content_type}
-        response = requests.put(
-            presigned_url,
-            data=file_bytes,
-            headers=headers,
-            timeout=self.timeout,
-        )
-        if response.status_code >= 400:
-            logger.error("Error en upload de TruthScan: %s", response.text)
-            raise TruthScanError("No se pudo subir el archivo a TruthScan")
+    def upload_file(self, presigned_url: str, file_data: bytes, content_type: str) -> None:
+        """
+        Sube el archivo a S3/Spaces.
+        Recibe 'file_data' como BYTES para asegurar el cálculo de Content-Length.
+        """
+        # DigitalOcean Spaces/S3 requiere saber el tamaño exacto
+        file_size = len(file_data)
 
+        headers = {
+            "Content-Type": content_type,
+            "Content-Length": str(file_size),  # Obligatorio para evitar EOF error
+            "x-amz-acl": "private"             # Recomendado por la documentación
+        }
+
+        try:
+            response = requests.put(
+                presigned_url,
+                data=file_data, # Pasamos bytes, no el objeto archivo
+                headers=headers,
+                timeout=self.timeout,
+            )
+        except requests.exceptions.SSLError:
+            # Reintento simple si la conexión se corta
+            logger.warning("Reintentando subida por error SSL...")
+            response = requests.put(
+                presigned_url,
+                data=file_data,
+                headers=headers,
+                timeout=self.timeout,
+            )
+
+        if response.status_code >= 400:
+            logger.error("Error en upload de TruthScan (%s): %s", response.status_code, response.text)
+            raise TruthScanError("No se pudo subir el archivo a TruthScan")
+    
     def detect_audio(self, file_url: str, analyze_seconds: Optional[int] = None) -> Dict[str, Any]:
         url = f"{self.base_url}/detect"
         payload = {"key": self.api_key, "url": file_url}
