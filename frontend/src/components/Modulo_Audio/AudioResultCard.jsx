@@ -30,22 +30,22 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
 
       try {
         setLoadingAudio(true);
-        const resp = await fetch(result.audio_url, { 
+        const resp = await fetch(result.audio_url, {
           mode: 'cors',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`
           }
         });
         if (!resp.ok) throw new Error(`Error ${resp.status}`);
-        
+
         const contentType = (resp.headers.get('content-type') || '').toLowerCase();
         if (!contentType.startsWith('audio')) {
           throw new Error('El recurso no es un archivo de audio');
         }
-        
+
         const blob = await resp.blob();
         const objectUrl = URL.createObjectURL(blob);
-        
+
         if (!cancelled) {
           setAudioSrc(objectUrl);
           setLoadingAudio(false);
@@ -72,7 +72,7 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
     setAudioSrc('');
     setLoadingAudio(true);
     setAudioError('');
-    
+
     // Small delay to allow state to update
     setTimeout(() => {
       setAudioSrc(result?.audio_url || '');
@@ -119,41 +119,52 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
   const handleLocalFile = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    
+
     const url = URL.createObjectURL(file);
     setAudioSrc(url);
     setAudioError('');
     setLoadingAudio(false);
   };
 
-  // Convert confidence score (0-1) to percentage with better context
-  const getConfidencePercentage = (confidence) => {
-    // If already in percentage (0-100), convert back to 0-1 range first
+  const getConfidencePercentage = (confidence, isAI) => {
+    // 1. Normalizar la probabilidad de IA a un rango de 0.0 a 1.0
     const normalizedConfidence = confidence > 1 ? confidence / 100 : confidence;
-    return Math.round(normalizedConfidence * 100);
+
+    let finalConfidence;
+
+    if (isAI) {
+      // 2. Si la clasificación es IA, la confianza en el resultado es la probabilidad de IA.
+      finalConfidence = normalizedConfidence;
+    } else {
+      // 3. Si la clasificación es Humano, la confianza en el resultado es 1 - probabilidad_IA.
+      finalConfidence = 1.0 - normalizedConfidence;
+    }
+
+    // Devolver el resultado redondeado al porcentaje.
+    return Math.max(0, Math.min(100, Math.round(finalConfidence * 100)));
   };
 
-  // Get color based on confidence level
-  const getConfidenceColor = (confidence) => {
-    const percent = getConfidencePercentage(confidence);
-    if (percent >= 80) return 'text-green-400';
-    if (percent >= 50) return 'text-yellow-400';
-    return 'text-red-400';
+  const finalConfidencePercentage = getConfidencePercentage(result.probabilidad, result.es_ia);
+
+  // Obtener colores basados en el porcentaje
+  const getConfidenceColor = (percent) => {
+    if (percent >= 80) return 'text-green-400'; // Alta confianza
+    if (percent >= 60) return 'text-yellow-400'; // Confianza media (ajustado de 50 a 60 para más rigor)
+    return 'text-red-400'; // Baja confianza
   };
 
-  // Get confidence level description
-  const getConfidenceLevel = (confidence) => {
-    const percent = getConfidencePercentage(confidence);
+  // Obtener descripción de nivel de confianza
+  const getConfidenceLevel = (percent) => {
     if (percent >= 80) return 'Alta confianza';
-    if (percent >= 50) return 'Confianza media';
+    if (percent >= 60) return 'Confianza media';
     return 'Baja confianza';
   };
-  
+
   // Get result explanation based on confidence
   const getResultExplanation = (isAI, confidence) => {
     const confidencePercent = getConfidencePercentage(confidence);
     const confidenceText = ` (${confidencePercent}% de confianza)`;
-    
+
     if (isAI) {
       if (confidencePercent >= 80) return 'Muy probablemente generado por IA' + confidenceText;
       if (confidencePercent >= 50) return 'Posiblemente generado por IA' + confidenceText;
@@ -169,7 +180,7 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
     <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-800/90 border border-cyan-500/30 shadow-2xl backdrop-blur-sm hover:border-cyan-400/50 transition-all duration-300">
       {/* Efecto de glow animado */}
       <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
+
       <div className="relative p-6 space-y-4">
         {/* Header con icono animado */}
         <div className="flex items-center justify-between mb-4">
@@ -185,16 +196,12 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
 
         {/* Resultado principal */}
         <div className="mb-6 text-center">
-          <div className={`text-4xl font-bold mb-2 ${
-            result.es_ia ? 'text-red-400' : 'text-green-400'
-          }`}>
+          <div className={`text-4xl font-bold mb-2 ${result.es_ia ? 'text-red-400' : 'text-green-400'
+            }`}>
             {result.es_ia ? 'GENERADO POR IA' : 'VOZ HUMANA'}
           </div>
           <div className="text-slate-400">
             Nivel de confianza: <span className="font-medium">{getConfidencePercentage(result.probabilidad)}%</span>
-            <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${getConfidenceColor(result.probabilidad)} bg-opacity-20`}>
-              {getConfidenceLevel(result.probabilidad)}
-            </span>
           </div>
 
           {/* Barra de confianza visual */}
@@ -204,13 +211,12 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
               <span>{getConfidencePercentage(result.probabilidad)}%</span>
             </div>
             <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                  result.es_ia 
-                    ? 'bg-gradient-to-r from-yellow-400 to-red-500' 
-                    : 'bg-gradient-to-r from-yellow-400 to-green-500'
-                }`}
-                style={{ 
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ease-out ${result.es_ia
+                  ? 'bg-gradient-to-r from-yellow-400 to-red-500'
+                  : 'bg-gradient-to-r from-yellow-400 to-green-500'
+                  }`}
+                style={{
                   width: `${getConfidencePercentage(result.probabilidad)}%`,
                   opacity: 0.3 + (getConfidencePercentage(result.probabilidad) / 100) * 0.7
                 }}
@@ -223,20 +229,20 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
           </div>
         </div>
 
-{/* Audio Player Component */}
+        {/* Audio Player Component */}
         <div className="mb-4">
-          <AudioPlayer 
+          <AudioPlayer
             audioUrl={audioSrc}
             fileName={result.original_filename}
             onDownloadCertificate={handleDownloadCertificate}
           />
-          
+
           {!loadingAudio && !audioSrc && !audioError && (
             <div className="text-center py-4 text-slate-400">
               No hay audio disponible para reproducir
             </div>
           )}
-          
+
           {audioError && (
             <div className="text-center py-2 text-orange-400 text-sm">
               {audioError}
@@ -244,12 +250,11 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
           )}
         </div>
 
-          {/* Fallback for audio error */}
+        {/* Fallback for audio error */}
         {!loadingAudio && !audioSrc && (
           <div className="space-y-2">
             <p className="text-sm text-orange-400">{audioError || 'No hay audio para reproducir'}</p>
 
-            {/* Nota: se eliminó referencia a fetchDetail inexistente */}
 
             <div className="flex items-center space-x-2">
               {/* Retry solo si backend proporcionó alguna URL distinta de placeholder */}
