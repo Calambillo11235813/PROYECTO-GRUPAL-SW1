@@ -9,33 +9,67 @@ const DashboardAudio = () => {
   const [results, setResults] = useState([]);
 
   const handleUploadSuccess = (apiResponse) => {
-    // The backend returns the data in a nested 'data' property
     const response = apiResponse.data || apiResponse;
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+    console.log('Respuesta de la API:', response);
+    let probValue = 0;
     
-    // Construir la URL del espectrograma
+    if (response.probability !== undefined && response.probability !== null) {
+      probValue = Number(response.probability);
+    } else if (typeof response.result === 'number') {
+      // Caso directo de TruthScan donde result es el float (ej: 0.873)
+      probValue = response.result;
+    } else if (response.score !== undefined) {
+      probValue = Number(response.score);
+    }
+
+    const probPercentage = probValue <= 1 ? probValue * 100 : probValue;
+
+    const label = (response.result || response.label || '').toString().toLowerCase();
+    const explicitAI = label === 'ai' || label === 'fake' || label === 'generated';
+    
+    // La verdad definitiva:
+    const isAI = explicitAI || probPercentage > 50;
+
+    // Construir URL del espectrograma (igual que antes)
     let spectrogramUrl = "";
     if (response.spectrogram) {
-      // Si la respuesta ya incluye la URL completa del espectrograma
       spectrogramUrl = response.spectrogram.startsWith('http') 
         ? response.spectrogram 
         : `${import.meta.env.VITE_API_BASE_URL}${response.spectrogram.replace(/^\//, '')}`;
     }
+
+    let audioUrl = '#';
+    if (response.file) {
+        const filePath = response.file;
+        
+        // Caso 1: Si ya es una URL completa (http/https - ej. S3 de TruthScan)
+        if (filePath.startsWith('http')) {
+            audioUrl = filePath;
+        } 
+        // Caso 2: Si es una ruta relativa local (ej. /media/audios/...)
+        else {
+            // Aseguramos que la URL base termine en barra y el path no empiece por ella
+            const cleanBase = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
+            const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+            
+            audioUrl = `${cleanBase}${cleanPath}`; // Resultado: http://localhost:8000/media/...
+        }
+    } 
+    // Fallback: Si el backend solo devuelve el ID de la entidad
+    else if (response.id) {
+        audioUrl = `${apiBaseUrl}api/audio/${response.id}/`;
+    }
     
     const result = {
       id: response.id || Date.now(),
-      probabilidad: response.probability || Math.floor(Math.random() * 100),
-      es_ia: response.result === 'ai', // Use the result from the backend if available
+      probabilidad: probPercentage, 
+      es_ia: isAI,
       spectrogram_url: spectrogramUrl,
-      audio_url: response.file || (response.id ? `${import.meta.env.VITE_API_BASE_URL}api/audio/${response.id}/` : '#')
+      audio_url: audioUrl,
     };
-    
-    console.log('Resultado del análisis:', result);
-    
-    // If we have a probability but no explicit result, determine it from the probability
-    if (response.probability !== undefined && response.result === undefined) {
-      result.es_ia = response.probability > 50;
-    }
-    
+    console.log('URL de audio final para el navegador:', audioUrl);
+    console.log('Resultado normalizado:', result);
     setResults([result, ...results]);
     setActiveTab('results');
   };

@@ -30,21 +30,52 @@ const AudioHistory = () => {
       }
 
       const data = await response.json();
-      
-      // Transformar la respuesta para que coincida con la estructura esperada
-      const formattedAudios = data.map(audio => ({
-        id: audio.id,
-        original_filename: audio.original_filename || `audio_${audio.id}`,
-        probabilidad: Math.round((audio.probability || 0) * 100),
-        es_ia: audio.result === 'ai',
-        created_at: audio.created_at,
-        audio_url: audio.file || `${import.meta.env.VITE_API_BASE_URL}api/audio/${audio.id}/`,
-        spectrogram_url: audio.spectrogram,
-        // Asegurarse de que todos los campos requeridos estén presentes
-        file: audio.file,
-        result: audio.result,
-        probability: audio.probability
-      }));
+
+    // Determinar la URL base de la API para corregir rutas relativas
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+    const cleanBaseUrl = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
+
+    // Transformar la respuesta para que coincida con la estructura esperada
+    const formattedAudios = data.map(audio => {
+            // 1. Probabilidad (0-100)
+            const rawProb = audio.probability || 0;
+            // Aseguramos que la probabilidad se escala a 0-100
+            const probPercentage = rawProb <= 1 ? Math.round(rawProb * 100) : Math.round(rawProb);
+            
+            // 2. Determinación de IA (Consistente con Dashboard)
+            const label = (audio.result || '').toString().toLowerCase();
+            const explicitAI = label === 'ai' || label === 'fake';
+            const isAI = explicitAI || probPercentage > 50;
+
+            // 3. Corrección de URL de audio (para manejar rutas locales)
+            let audioUrl = audio.file || `${cleanBaseUrl}api/audio/${audio.id}/`;
+
+            if (audio.file && !audio.file.startsWith('http')) {
+                const cleanPath = audio.file.startsWith('/') ? audio.file.slice(1) : audio.file;
+                audioUrl = `${cleanBaseUrl}${cleanPath}`;
+            }
+
+            // 4. Corrección de URL de espectrograma
+            let spectrogramUrl = audio.spectrogram;
+            if (audio.spectrogram && !audio.spectrogram.startsWith('http')) {
+                const cleanPath = audio.spectrogram.startsWith('/') ? audio.spectrogram.slice(1) : audio.spectrogram;
+                spectrogramUrl = `${cleanBaseUrl}${cleanPath}`;
+            }
+
+            return {
+            id: audio.id,
+            original_filename: audio.original_filename || `audio_${audio.id}`,
+            probabilidad: probPercentage, 
+            es_ia: isAI,
+            created_at: audio.created_at,
+            audio_url: audioUrl, 
+            spectrogram_url: spectrogramUrl,
+            // Dejamos los campos originales por si son necesarios
+            file: audio.file,
+            result: audio.result,
+            probability: audio.probability
+            };
+        });
 
       setAudios(formattedAudios);
       setError('');
