@@ -36,11 +36,8 @@ ALLOWED_HOSTS = ['*']
 
 # Configuración para audio
 TIPOS_AUDIO_PERMITIDOS = [
-    'audio/wav', 'audio/x-wav', 'audio/wave',
-    'audio/mpeg', 'audio/mp3',
-    'audio/x-m4a', 'audio/aac',
-    'audio/ogg', 'audio/x-ogg',
-    'audio/flac', 'audio/x-flac'
+    'audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/wave',
+    'audio/x-wav', 'audio/x-m4a', 'audio/aac'
 ]
 
 # Configuración para video (futura implementación)
@@ -53,7 +50,7 @@ TIPOS_VIDEO_PERMITIDOS = [
 TIPOS_ARCHIVO_PERMITIDOS = TIPOS_AUDIO_PERMITIDOS + TIPOS_VIDEO_PERMITIDOS
 
 # Tamaños máximos (en bytes)
-TAMANO_MAXIMO_AUDIO = 10 * 1024 * 1024  # 10 MB (límite TruthScan)
+TAMANO_MAXIMO_AUDIO = 50 * 1024 * 1024  # 50 MB
 TAMANO_MAXIMO_VIDEO = 500 * 1024 * 1024  # 500 MB
 TAMANO_MAXIMO_ARCHIVO = TAMANO_MAXIMO_VIDEO  # Usar el más grande por defecto
 
@@ -66,11 +63,6 @@ RUTA_LOGS = os.path.join(BASE_DIR, 'logs')
 
 # Crear directorio de logs si no existe
 os.makedirs(RUTA_LOGS, exist_ok=True)
-
-# Configuración TruthScan (detección de audio IA)
-TRUTHSCAN_BASE_URL = os.environ.get('TRUTHSCAN_BASE_URL', 'https://detect-audio.truthscan.com')
-TRUTHSCAN_API_KEY = os.environ.get('TRUTHSCAN_API_KEY', '')
-TRUTHSCAN_TIMEOUT = int(os.environ.get('TRUTHSCAN_TIMEOUT', '60'))
 
 # Configuración de logging
 LOGGING = {
