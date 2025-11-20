@@ -49,8 +49,7 @@ Backend/.venv
 README_DESARROLLADOR.md
 /Backend/venv
 
-
-Backend/codigo/code_detection-model-complete/model.safetensors
+# Ignorar solo pkl, los safetensors van por LFS
 Backend/codigo/code_detection-model-complete/production_detector.pkl
 
 # Ignore analysis outputs and summaries
