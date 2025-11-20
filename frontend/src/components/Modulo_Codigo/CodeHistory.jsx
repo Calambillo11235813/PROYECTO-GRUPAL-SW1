@@ -11,6 +11,8 @@ import {
   X,
   FileText,
   Eye,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import codeAnalysisService from "../../services/codeAnalysisService";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +23,16 @@ const CodeHistory = () => {
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    count: 0,
+    next: null,
+    previous: null,
+  });
   const navigate = useNavigate();
 
   const [filters, setFilters] = useState({
@@ -35,9 +47,28 @@ const CodeHistory = () => {
     const loadHistory = async () => {
       setLoading(true);
       try {
-        const data = await codeAnalysisService.getHistory(filters);
-        setHistory(data);
-        setFilteredHistory(data);
+        const data = await codeAnalysisService.getHistory(
+          filters,
+          pagination.page,
+          pagination.pageSize
+        );
+        
+        // Manejar respuesta paginada o array simple
+        if (data.results !== undefined) {
+          setHistory(data.results);
+          setFilteredHistory(data.results);
+          setPagination((prev) => ({
+            ...prev,
+            count: data.count || 0,
+            next: data.next,
+            previous: data.previous,
+          }));
+        } else {
+          // Compatibilidad con respuesta sin paginación
+          const historyArray = Array.isArray(data) ? data : [];
+          setHistory(historyArray);
+          setFilteredHistory(historyArray);
+        }
       } catch (error) {
         console.error("Error al cargar historial:", error);
       } finally {
@@ -46,7 +77,7 @@ const CodeHistory = () => {
     };
 
     loadHistory();
-  }, [filters]);
+  }, [filters, pagination.page]);
 
   const applyFilters = async () => {
     setLoading(true);
@@ -95,6 +126,72 @@ const CodeHistory = () => {
     navigate(`/codigo/analisis/${id}`);
   };
 
+  const handleDeleteAnalysis = async (id) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este análisis? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      await codeAnalysisService.deleteAnalysis(id);
+      // Recargar historial
+      const data = await codeAnalysisService.getHistory(
+        filters,
+        pagination.page,
+        pagination.pageSize
+      );
+      if (data.results !== undefined) {
+        setHistory(data.results);
+        setFilteredHistory(data.results);
+        setPagination((prev) => ({
+          ...prev,
+          count: data.count || 0,
+          next: data.next,
+          previous: data.previous,
+        }));
+      } else {
+        const historyArray = Array.isArray(data) ? data : [];
+        setHistory(historyArray);
+        setFilteredHistory(historyArray);
+      }
+      setSelectedItems((prev) => prev.filter((item) => item !== id));
+    } catch (error) {
+      console.error("Error al eliminar análisis:", error);
+      alert(error.message || "Error al eliminar el análisis");
+    } finally {
+      setDeletingId(null);
+      setShowDeleteConfirm(null);
+    }
+  };
+
+  const handleDeleteAllHistory = async () => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar TODO tu historial? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await codeAnalysisService.deleteHistory(false);
+      // Recargar historial vacío
+      setHistory([]);
+      setFilteredHistory([]);
+      setSelectedItems([]);
+      setPagination((prev) => ({
+        ...prev,
+        count: 0,
+        next: null,
+        previous: null,
+      }));
+      alert("Historial eliminado correctamente");
+    } catch (error) {
+      console.error("Error al eliminar historial:", error);
+      alert(error.message || "Error al eliminar el historial");
+    } finally {
+      setLoading(false);
+      setShowDeleteAllConfirm(false);
+    }
+  };
+
   if (loading && filteredHistory.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -136,6 +233,14 @@ const CodeHistory = () => {
           >
             <Download className="w-4 h-4" />
             <span>Exportar</span>
+          </button>
+
+          <button
+            onClick={() => setShowDeleteAllConfirm(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Eliminar Todo</span>
           </button>
 
           <button
@@ -342,18 +447,100 @@ const CodeHistory = () => {
                 </div>
 
                 {/* Actions */}
-                <button
-                  onClick={() => viewAnalysis(item.id)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>Ver Detalle</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => viewAnalysis(item.id)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>Ver Detalle</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAnalysis(item.id)}
+                    disabled={deletingId === item.id}
+                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deletingId === item.id ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                        <span>Eliminando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        <span>Eliminar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Paginación */}
+      {pagination.count > 0 && (
+        <div className="flex items-center justify-between mt-6">
+          <div className="text-sm text-slate-400">
+            Mostrando {filteredHistory.length} de {pagination.count} análisis
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() =>
+                setPagination((prev) => ({ ...prev, page: prev.page - 1 }))
+              }
+              disabled={!pagination.previous}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <span className="text-slate-300">
+              Página {pagination.page}
+            </span>
+            <button
+              onClick={() =>
+                setPagination((prev) => ({ ...prev, page: prev.page + 1 }))
+              }
+              disabled={!pagination.next}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmación de Eliminar Todo */}
+      {showDeleteAllConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 border border-red-500/50 rounded-xl p-6 max-w-md">
+            <div className="flex items-center space-x-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-red-400" />
+              <h3 className="text-lg font-bold text-slate-100">
+                Confirmar Eliminación
+              </h3>
+            </div>
+            <p className="text-slate-300 mb-6">
+              ¿Estás seguro de que deseas eliminar TODO tu historial? Esta acción no se puede deshacer y eliminará todos tus análisis.
+            </p>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleDeleteAllHistory}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Eliminar Todo
+              </button>
+              <button
+                onClick={() => setShowDeleteAllConfirm(false)}
+                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

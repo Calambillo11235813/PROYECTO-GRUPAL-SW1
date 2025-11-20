@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Code2,
   FileCode,
@@ -9,9 +9,13 @@ import {
   Zap,
   GitBranch,
   Brain,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 const AnalysisResults = ({ analysisData }) => {
+  const [showCode, setShowCode] = useState(false);
+
   if (!analysisData) return null;
 
   const {
@@ -20,6 +24,7 @@ const AnalysisResults = ({ analysisData }) => {
     resaltado_ia,
     metricas_codigo,
     patrones_sintacticos,
+    codigo_original,
   } = analysisData;
 
   // Determinar color según confianza
@@ -27,6 +32,93 @@ const AnalysisResults = ({ analysisData }) => {
     if (confidence >= 0.8) return "text-red-400";
     if (confidence >= 0.6) return "text-orange-400";
     return "text-yellow-400";
+  };
+
+  // Función para renderizar código con líneas marcadas
+  const renderCodeWithMarkedLines = () => {
+    if (!codigo_original) return null;
+
+    const lines = codigo_original.split("\n");
+    const suspiciousLines = resaltado_ia?.lineas_sospechosas || [];
+    // El backend devuelve 'bloques' en la respuesta JSON
+    const suspiciousBlocks = resaltado_ia?.bloques || [];
+
+    // Crear un Set de líneas sospechosas para búsqueda rápida
+    const suspiciousSet = new Set(suspiciousLines);
+
+    // Crear un Set de rangos de bloques sospechosos
+    const blockRanges = suspiciousBlocks.map((block) => ({
+      start: block.inicio,
+      end: block.fin,
+    }));
+
+    return (
+      <div className="bg-slate-900/50 border-t border-slate-700/50">
+        <div className="relative">
+          <pre className="text-sm text-slate-300 font-mono overflow-x-auto bg-slate-950 p-4 rounded-lg max-h-[600px] overflow-y-auto">
+            <code>
+              {lines.map((line, index) => {
+                const lineNumber = index + 1;
+                const isSuspicious = suspiciousSet.has(lineNumber);
+                
+                // Verificar si está en un bloque sospechoso
+                const isInBlock = blockRanges.some(
+                  (block) => lineNumber >= block.start && lineNumber <= block.end
+                );
+
+                // Determinar el estilo según el tipo de sospecha
+                let lineStyle = "";
+                if (isSuspicious && isInBlock) {
+                  // Línea sospechosa que también está en un bloque
+                  lineStyle = "bg-red-500/30 border-l-4 border-red-500";
+                } else if (isSuspicious) {
+                  // Solo línea sospechosa
+                  lineStyle = "bg-orange-500/20 border-l-4 border-orange-500";
+                } else if (isInBlock) {
+                  // Solo en bloque sospechoso
+                  lineStyle = "bg-purple-500/15 border-l-4 border-purple-500";
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-start ${lineStyle} px-2 py-1 hover:bg-slate-800/50 transition-colors`}
+                  >
+                    <span className="text-slate-500 text-xs mr-4 w-12 text-right select-none">
+                      {lineNumber}
+                    </span>
+                    <span className="flex-1">{line || " "}</span>
+                    {isSuspicious && (
+                      <span className="ml-2 text-orange-400 text-xs" title="Línea sospechosa">
+                        ⚠️
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </code>
+          </pre>
+        </div>
+        
+        {/* Leyenda */}
+        <div className="p-4 bg-slate-800/50 border-t border-slate-700/50">
+          <div className="flex items-center space-x-6 text-xs">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-orange-500/20 border-l-4 border-orange-500"></div>
+              <span className="text-slate-300">Línea sospechosa</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-red-500/30 border-l-4 border-red-500"></div>
+              <span className="text-slate-300">Línea en bloque sospechoso</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-purple-500/15 border-l-4 border-purple-500"></div>
+              <span className="text-slate-300">En bloque sospechoso</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
 
@@ -64,32 +156,52 @@ const AnalysisResults = ({ analysisData }) => {
                 </p>
               </div>
             </div>
+          </div>
+          
+          {/* Botón para ver código */}
+          {codigo_original && (
+            <button
+              onClick={() => setShowCode(!showCode)}
+              className="flex items-center space-x-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
+            >
+              {showCode ? (
+                <>
+                  <EyeOff className="w-4 h-4" />
+                  <span>Ocultar Código</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  <span>Ver Código</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
-            {/* Confianza */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-300">
-                  Nivel de Confianza
-                </span>
-                <span
-                  className={`text-lg font-bold ${getConfidenceColor(
-                    analisis_ia?.confianza
-                  )}`}
-                >
-                  {(analisis_ia?.confianza * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ${
-                    analisis_ia?.es_generado
-                      ? "bg-gradient-to-r from-red-500 to-orange-500"
-                      : "bg-gradient-to-r from-green-500 to-cyan-500"
-                  }`}
-                  style={{ width: `${analisis_ia?.confianza * 100}%` }}
-                />
-              </div>
-            </div>
+        {/* Confianza */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-slate-300">
+              Nivel de Confianza
+            </span>
+            <span
+              className={`text-lg font-bold ${getConfidenceColor(
+                analisis_ia?.confianza
+              )}`}
+            >
+              {(analisis_ia?.confianza * 100).toFixed(1)}%
+            </span>
+          </div>
+          <div className="w-full bg-slate-700 rounded-full h-3 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-1000 ${
+                analisis_ia?.es_generado
+                  ? "bg-gradient-to-r from-red-500 to-orange-500"
+                  : "bg-gradient-to-r from-green-500 to-cyan-500"
+              }`}
+              style={{ width: `${analisis_ia?.confianza * 100}%` }}
+            />
           </div>
         </div>
       </div>
@@ -222,29 +334,52 @@ const AnalysisResults = ({ analysisData }) => {
         )}
 
       {/* Bloques Sospechosos */}
-        <div className="bg-slate-800/50 border border-purple-500/50 rounded-xl p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <FileCode className="w-6 h-6 text-purple-400" />
-            <h3 className="text-lg font-bold text-slate-100">
-              Bloques Sospechosos
-            </h3>
-          </div>
+      {resaltado_ia?.bloques &&
+        resaltado_ia.bloques.length > 0 && (
+          <div className="bg-slate-800/50 border border-purple-500/50 rounded-xl p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <FileCode className="w-6 h-6 text-purple-400" />
+              <h3 className="text-lg font-bold text-slate-100">
+                Bloques Sospechosos
+              </h3>
+            </div>
 
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {resaltado_ia.bloques.map((bloque, idx) => (
-              <div
-                key={idx}
-                className="bg-slate-900/50 border border-purple-500/30 rounded-lg p-3"
-              >
-                <p className="text-sm text-slate-400 mb-1">
-                  Bloque {idx + 1}: Líneas {bloque.inicio} - {bloque.fin}
-                </p>
-                <p className="text-xs text-purple-400">
-                  Tamaño: {bloque.fin - bloque.inicio + 1} líneas
-                </p>
-              </div>
-            ))}
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {resaltado_ia.bloques.map((bloque, idx) => (
+                <div
+                  key={idx}
+                  className="bg-slate-900/50 border border-purple-500/30 rounded-lg p-3"
+                >
+                  <p className="text-sm text-slate-400 mb-1">
+                    Bloque {idx + 1}: Líneas {bloque.inicio} - {bloque.fin}
+                  </p>
+                  <p className="text-xs text-purple-400">
+                    Tamaño: {bloque.fin - bloque.inicio + 1} líneas
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+
+      {/* Código con Líneas Marcadas */}
+      {showCode && codigo_original && (
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between p-4 bg-slate-800/70 border-b border-slate-700/50">
+            <div className="flex items-center space-x-3">
+              <Code2 className="w-6 h-6 text-cyan-400" />
+              <h3 className="text-lg font-bold text-slate-100">
+                Código con Líneas Sospechosas Marcadas
+              </h3>
+            </div>
+            <button
+              onClick={() => setShowCode(false)}
+              className="text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              <EyeOff className="w-5 h-5" />
+            </button>
+          </div>
+          {renderCodeWithMarkedLines()}
         </div>
       )}
     </div>

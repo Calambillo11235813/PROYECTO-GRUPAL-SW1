@@ -44,8 +44,8 @@ class CodeAnalysisService {
     return await response.json();
   }
 
-  // HU-019: Historial de análisis con filtros
-  async getHistory(filters = {}) {
+  // HU-019: Historial de análisis con filtros y paginación
+  async getHistory(filters = {}, page = 1, pageSize = 20) {
     const params = new URLSearchParams();
 
     if (filters.nombre) params.append("nombre", filters.nombre);
@@ -53,6 +53,10 @@ class CodeAnalysisService {
     if (filters.ia !== undefined) params.append("ia", filters.ia);
     if (filters.inicio) params.append("inicio", filters.inicio);
     if (filters.fin) params.append("fin", filters.fin);
+    
+    // Parámetros de paginación
+    params.append("page", page);
+    params.append("page_size", pageSize);
 
     const { fetchWithAuth } = await import('./fetchClient');
     const response = await fetchWithAuth(
@@ -64,10 +68,19 @@ class CodeAnalysisService {
     );
 
     if (!response.ok) {
-      throw new Error("Error al obtener el historial");
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Error al obtener el historial");
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Si la respuesta tiene paginación (count, next, previous, results)
+    if (data.results !== undefined) {
+      return data;
+    }
+    
+    // Si no tiene paginación, devolver como array (compatibilidad)
+    return Array.isArray(data) ? data : [];
   }
 
   // HU-019: Comparar análisis side-by-side
@@ -147,7 +160,8 @@ class CodeAnalysisService {
     });
 
     if (!response.ok) {
-      throw new Error("Error al exportar el historial");
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Error al exportar el historial");
     }
 
     const data = await response.json();
@@ -166,6 +180,45 @@ class CodeAnalysisService {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+  }
+
+  // Eliminar análisis individual
+  async deleteAnalysis(id) {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const response = await fetchWithAuth(
+      `${this.baseURL}/analisis/${id}/eliminar/`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Error al eliminar el análisis");
+    }
+
+    return await response.json();
+  }
+
+  // Eliminar historial completo
+  async deleteHistory(todos = false) {
+    const { fetchWithAuth } = await import('./fetchClient');
+    const url = todos
+      ? `${this.baseURL}/historial/eliminar/?todos=true`
+      : `${this.baseURL}/historial/eliminar/`;
+    
+    const response = await fetchWithAuth(url, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Error al eliminar el historial");
+    }
+
+    return await response.json();
   }
 }
 

@@ -7,10 +7,11 @@ from .views.historial_view import (
     HistorialAnalisisView,
     CompararAnalisisView,
     EstadisticasHistorialView,
-    ExportarHistorialJSONView
+    ExportarHistorialJSONView,
+    EliminarHistorialView
 )
 from .views.reporte_view import ReportePDFView, ReporteJSONView
-from .views.analisis_view import AnalisisDetalleView
+from .views.analisis_view import AnalisisDetalleView, EliminarAnalisisView
 
 urlpatterns = [
 
@@ -23,11 +24,18 @@ urlpatterns = [
     #  SUBIR ARCHIVO
     # ===============================
     path("subir/", SubirCodigoView.as_view(), name="codigo_subir"),
-    path("analisis/<int:pk>/", AnalisisDetalleView.as_view()),
+    
+    # ===============================
+    #  ANÁLISIS INDIVIDUAL
+    # ===============================
+    path("analisis/<int:pk>/", AnalisisDetalleView.as_view(), name="codigo_analisis_detalle"),
+    path("analisis/<int:pk>/eliminar/", EliminarAnalisisView.as_view(), name="codigo_analisis_eliminar"),
+    
     # ===============================
     #  HISTORIAL / FILTROS
     # ===============================
     path("historial/", HistorialAnalisisView.as_view(), name="codigo_historial"),
+    path("historial/eliminar/", EliminarHistorialView.as_view(), name="codigo_historial_eliminar"),
     path("historial/comparar/", CompararAnalisisView.as_view(), name="codigo_comparar"),
     path("historial/estadisticas/", EstadisticasHistorialView.as_view(), name="codigo_estadisticas"),
     path("historial/exportar/", ExportarHistorialJSONView.as_view(), name="codigo_exportar"),
