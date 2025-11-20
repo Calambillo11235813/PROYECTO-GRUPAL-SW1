@@ -12,6 +12,8 @@ const AudioUpload = ({ onUploadSuccess }) => {
   // Evita "flicker" de drag cuando se entra/sale sobre elementos hijos
   const dragCounter = useRef(0);
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB (TruthScan limit)
+
   const handleFileChange = (selectedFile) => {
     if (selectedFile) {
       // Validar tipo de archivo
@@ -21,9 +23,9 @@ const AudioUpload = ({ onUploadSuccess }) => {
         return;
       }
       
-      // Validar tamaño (max 50MB)
-      if (selectedFile.size > 50 * 1024 * 1024) {
-        setError('El archivo es demasiado grande. Máximo 50MB.');
+      // Validar tamaño (max 10MB)
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        setError('El archivo es demasiado grande. Máximo 10MB.');
         return;
       }
 
@@ -210,7 +212,7 @@ const AudioUpload = ({ onUploadSuccess }) => {
                   {dragOver ? 'Suelta tu archivo aquí' : 'Arrastra tu audio o haz clic'}
                 </div>
                 <div className="text-sm text-slate-500">
-                  Soportamos MP3, WAV, OGG, M4A, WEBM (máx. 50MB)
+                  Soportamos MP3, WAV, OGG, M4A, WEBM (máx. 10MB)
                 </div>
               </div>
             </>
