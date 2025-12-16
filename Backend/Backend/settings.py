@@ -138,6 +138,7 @@ INSTALLED_APPS = [
     'usuario',  # ← DEBE ir ANTES que 'texto'
     'texto',
     'codigo',
+    'video',
     
     'audio.apps.AudioConfig',
 ]
