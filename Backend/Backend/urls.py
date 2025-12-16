@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/audio/', include('audio.urls')),
     path('api/codigo/', include('codigo.urls')),
     path('api/texto/', include('texto.urls')),
+    path('api/video/', include('video.urls')),
 ]
 
 # Servir archivos de medios en desarrollo
