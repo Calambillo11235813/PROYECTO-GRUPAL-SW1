@@ -3,6 +3,7 @@ from .models import VideoUpload, VideoFrame, AnalysisResult
 
 
 class VideoUploadSerializer(serializers.ModelSerializer):
+    # Representación legible del usuario que subió el archivo
     uploaded_by = serializers.StringRelatedField(read_only=True)
 
     class Meta:
@@ -15,6 +16,7 @@ class VideoUploadSerializer(serializers.ModelSerializer):
 
 
 class VideoFrameSerializer(serializers.ModelSerializer):
+    """Serializador para frames extraídos de un video."""
     class Meta:
         model = VideoFrame
         fields = ['id', 'video', 'frame_number', 'image', 'extracted_at']
@@ -22,6 +24,7 @@ class VideoFrameSerializer(serializers.ModelSerializer):
 
 
 class AnalysisResultSerializer(serializers.ModelSerializer):
+    """Serializador para los resultados del análisis (score, veredicto, detalles)."""
     class Meta:
         model = AnalysisResult
         fields = ['id', 'video', 'model_name', 'score', 'verdict', 'created_at', 'details']
