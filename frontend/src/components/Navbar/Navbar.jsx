@@ -33,8 +33,8 @@ const Navbar = () => {
       name: "Video",
       path: "/video",
       icon: "🎬",
-      isActive: false,
-      comingSoon: true,
+      isActive: true,
+      comingSoon: false,
     },
   ];
 

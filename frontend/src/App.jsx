@@ -12,6 +12,8 @@ import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import DashboardAudio from "./pages/Dashboard_Audio";
 import DashboardCodigo from "./pages/Dashboard_Codigo";
+import DashboardVideo from "./pages/Dashboard_Video";
+import VideoHistoryFull from "./components/Modulo_Video/VideoHistoryFull";
 import AnalysisDetail from "./components/Modulo_Codigo/AnalysisDetail";
 import CompareAnalysis from "./components/Modulo_Codigo/CompareAnalysis";
 import "./App.css";
@@ -40,6 +42,28 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <DashboardAudio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video"
+            element={
+              <ProtectedRoute>
+                <DashboardVideo />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video/historial"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen w-full bg-cyber-bg-primary">
+                  <div className="pt-20">
+                    <div className="max-w-7xl mx-auto px-4">
+                      <VideoHistoryFull />
+                    </div>
+                  </div>
+                </div>
               </ProtectedRoute>
             }
           />

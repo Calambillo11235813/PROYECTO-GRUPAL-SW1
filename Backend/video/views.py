@@ -4,8 +4,10 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 
+
 from .models import VideoUpload, AnalysisResult
 from .serializers import VideoUploadSerializer, AnalysisResultSerializer
+from .deepfake_utils import DeepfakeDetector
 
 
 class VideoUploadViewSet(viewsets.ModelViewSet):
@@ -13,6 +15,13 @@ class VideoUploadViewSet(viewsets.ModelViewSet):
 	queryset = VideoUpload.objects.all().order_by('-uploaded_at')
 	serializer_class = VideoUploadSerializer
 	parser_classes = [MultiPartParser, FormParser]
+
+	@action(detail=False, methods=['delete'], url_path='delete-all')
+	def delete_all(self, request):
+		"""Eliminar todos los videos del historial."""
+		count = VideoUpload.objects.all().count()
+		VideoUpload.objects.all().delete()
+		return Response({'deleted': count}, status=status.HTTP_200_OK)
 
 	def perform_create(self, serializer):
 		# Guardar `uploaded_by` si el usuario está autenticado
@@ -29,26 +38,40 @@ class VideoUploadViewSet(viewsets.ModelViewSet):
 
 	@action(detail=True, methods=['post'])
 	def analyze(self, request, pk=None):
-		"""Disparar el análisis de un video subido (crea un placeholder `AnalysisResult`).
-		La implementación real del análisis debe manejarse de forma asíncrona (tareas/worker).
-		"""
+		"""Disparar el análisis real de deepfake sobre el video subido."""
 		upload = get_object_or_404(VideoUpload, pk=pk)
-		# Placeholder: crear un AnalysisResult en estado pendiente y devolverlo
+		video_path = upload.file.path
+		detector = DeepfakeDetector()
+		try:
+			score, verdict = detector.predict(video_path)
+			details = {"frames": "analyzed", "note": "OK"}
+		except Exception as e:
+			score = 0.0
+			verdict = 'ERROR'
+			details = {"error": str(e)}
 		result = AnalysisResult.objects.create(
 			video=upload,
 			model_name='modelo_deepfake_final_corregido.h5',
-			score=0.0,
-			verdict='PENDING',
-			details={}
+			score=score,
+			verdict=verdict,
+			details=details
 		)
 		serializer = AnalysisResultSerializer(result)
-		upload.status = 'processing'
+		upload.status = 'done' if verdict in ['REAL', 'DEEPFAKE'] else 'error'
 		upload.save(update_fields=['status'])
 		return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class AnalysisResultViewSet(viewsets.ReadOnlyModelViewSet):
-	"""Puntos de entrada solo-lectura para los resultados de análisis."""
+class AnalysisResultViewSet(viewsets.ModelViewSet):
+	"""Puntos de entrada para los resultados de análisis (con eliminación)."""
 	queryset = AnalysisResult.objects.all().order_by('-created_at')
 	serializer_class = AnalysisResultSerializer
+	http_method_names = ['get', 'delete']  # Solo GET y DELETE
+
+	@action(detail=False, methods=['delete'], url_path='delete-all')
+	def delete_all(self, request):
+		"""Eliminar todos los resultados del historial."""
+		count = AnalysisResult.objects.all().count()
+		AnalysisResult.objects.all().delete()
+		return Response({'deleted': count}, status=status.HTTP_200_OK)
 

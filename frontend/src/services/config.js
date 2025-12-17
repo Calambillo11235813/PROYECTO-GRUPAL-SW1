@@ -37,4 +37,7 @@ export const API_ENDPOINTS = {
   AUDIO: `${BASE_URL}/audio`
 };
 
+// Endpoint para el servicio de video
+API_ENDPOINTS.VIDEO = `${BASE_URL}/video`;
+
 export { BASE_URL };
