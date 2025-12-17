@@ -18,7 +18,23 @@ def generar_espectrograma(path_audio, file_id, original_filename=None):
         file_id (str): ID único para el archivo de salida
         original_filename (str, optional): Nombre original del archivo para mostrar en el título
     """
-    y, sr = librosa.load(path_audio, sr=None)
+    try:
+        y, sr = librosa.load(path_audio, sr=None)
+    except Exception as e:
+        # Si librosa falla (ej: falta ffmpeg), intentar con soundfile como fallback
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"librosa.load falló: {e}. Intentando con soundfile...")
+        
+        try:
+            import soundfile as sf
+            y, sr = sf.read(path_audio)
+        except Exception as sf_error:
+            logger.error(f"soundfile también falló: {sf_error}")
+            # Si ambos fallan, retornar None para que el análisis continúe sin espectrograma
+            logger.error("No se pudo generar espectrograma. Instala ffmpeg para soporte completo de formatos.")
+            return None
+    
     S = librosa.feature.melspectrogram(y=y, sr=sr)
     S_DB = librosa.power_to_db(S, ref=1.0)
 

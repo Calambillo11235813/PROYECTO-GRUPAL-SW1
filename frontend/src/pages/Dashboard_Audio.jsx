@@ -12,17 +12,19 @@ const DashboardAudio = () => {
     const response = apiResponse.data || apiResponse;
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
     console.log('Respuesta de la API:', response);
-    let probValue = 0;
     
+    // Extraer la probabilidad
+    let probValue = 0;
     if (response.probability !== undefined && response.probability !== null) {
       probValue = Number(response.probability);
     } else if (typeof response.result === 'number') {
-      // Caso directo de TruthScan donde result es el float (ej: 0.873)
       probValue = response.result;
     } else if (response.score !== undefined) {
       probValue = Number(response.score);
     }
 
+    // Normalizar: si el valor es <= 1, es una probabilidad de IA (0-1)
+    // Si es > 1, ya está en porcentaje (0-100)
     const probPercentage = probValue <= 1 ? probValue * 100 : probValue;
 
     const label = (response.result || response.label || '').toString().toLowerCase();
@@ -30,6 +32,14 @@ const DashboardAudio = () => {
     
     // La verdad definitiva:
     const isAI = explicitAI || probPercentage > 50;
+
+    console.log('Análisis de audio:', {
+      probValue,
+      probPercentage,
+      label,
+      explicitAI,
+      isAI
+    });
 
     // Construir URL del espectrograma (igual que antes)
     let spectrogramUrl = "";

@@ -127,21 +127,24 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
   };
 
   const getConfidencePercentage = (confidence, isAI) => {
-    // 1. Normalizar la probabilidad de IA a un rango de 0.0 a 1.0
-    const normalizedConfidence = confidence > 1 ? confidence / 100 : confidence;
-
+    // confidence ya viene normalizado a 0-100 desde Dashboard_Audio
+    // Este valor representa la probabilidad de que sea IA
+    
+    console.log('getConfidencePercentage input:', { confidence, isAI });
+    
     let finalConfidence;
 
     if (isAI) {
-      // 2. Si la clasificación es IA, la confianza en el resultado es la probabilidad de IA.
-      finalConfidence = normalizedConfidence;
+      // Si es IA, la confianza es directamente el valor de probabilidad
+      finalConfidence = confidence;
     } else {
-      // 3. Si la clasificación es Humano, la confianza en el resultado es 1 - probabilidad_IA.
-      finalConfidence = 1.0 - normalizedConfidence;
+      // Si es Humano, la confianza es 100 - probabilidad_IA
+      finalConfidence = 100 - confidence;
     }
 
-    // Devolver el resultado redondeado al porcentaje.
-    return Math.max(0, Math.min(100, Math.round(finalConfidence * 100)));
+    const result = Math.max(0, Math.min(100, Math.round(finalConfidence)));
+    console.log('getConfidencePercentage output:', result);
+    return result;
   };
 
   const finalConfidencePercentage = getConfidencePercentage(result.probabilidad, result.es_ia);

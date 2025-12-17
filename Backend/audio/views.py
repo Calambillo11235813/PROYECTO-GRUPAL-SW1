@@ -64,10 +64,10 @@ class AudioUploadView(APIView):
                     original_filename=original_filename
                 )
                 
-                # Actualizar el modelo con los resultados
+                # Actualizar el modelo con los resultados (espectrograma puede ser None si falla)
                 audio_upload.result = result
                 audio_upload.probability = probability
-                audio_upload.spectrogram = spectrogram_path
+                audio_upload.spectrogram = spectrogram_path if spectrogram_path else ""
                 audio_upload.save()
                 
                 logger.info(f"Análisis completado. Resultado: {result}, Probabilidad: {probability}")
