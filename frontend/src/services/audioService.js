@@ -29,3 +29,13 @@ export const downloadAudioCertificate = async (audioId) => {
     responseType: 'blob',
   });
 };
+
+// Eliminar un audio específico
+export const deleteAudio = async (audioId) => {
+  return apiClient.delete(`${API_BASE_URL}${audioId}/delete/`);
+};
+
+// Eliminar todos los audios del usuario
+export const deleteAllAudios = async () => {
+  return apiClient.delete(API_BASE_URL);
+};

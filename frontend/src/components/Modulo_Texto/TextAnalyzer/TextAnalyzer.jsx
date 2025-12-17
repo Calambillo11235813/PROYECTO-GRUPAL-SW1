@@ -44,11 +44,11 @@ const TextAnalyzer = ({ onAnalysisComplete, modelo = 'B' }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-16">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-white mb-2">
-          Análisis de Texto con IA
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+          Análisis de Texto IA
         </h2>
         <p className="text-cyber-text-secondary">
           Ingresa el texto que deseas analizar para detectar si fue generado por IA
@@ -73,6 +73,7 @@ const TextAnalyzer = ({ onAnalysisComplete, modelo = 'B' }) => {
         onChange={setText}
         placeholder="Escribe o pega aquí el texto que quieres analizar..."
         disabled={isAnalyzing}
+      
       />
 
       {/* Action Buttons */}
@@ -83,7 +84,7 @@ const TextAnalyzer = ({ onAnalysisComplete, modelo = 'B' }) => {
           disabled={!text.trim() || isAnalyzing}
           className="flex-1"
         >
-          🔍 Analizar Texto {modelo}
+          🔍 Analizar Texto 
         </Button>
         
         {result && (

@@ -43,12 +43,16 @@ class VideoUploadViewSet(viewsets.ModelViewSet):
 		video_path = upload.file.path
 		detector = DeepfakeDetector()
 		try:
-			score, verdict = detector.predict(video_path)
-			details = {"frames": "analyzed", "note": "OK"}
+			score, verdict, suspicious_frames = detector.predict(video_path)
+			details = {
+				"total_frames_analyzed": len(suspicious_frames) if verdict == 'DEEPFAKE' else 0,
+				"suspicious_frames": suspicious_frames,
+				"note": "Análisis completado con detección de timestamps"
+			}
 		except Exception as e:
 			score = 0.0
 			verdict = 'ERROR'
-			details = {"error": str(e)}
+			details = {"error": str(e), "suspicious_frames": []}
 		result = AnalysisResult.objects.create(
 			video=upload,
 			model_name='modelo_deepfake_final_corregido.h5',

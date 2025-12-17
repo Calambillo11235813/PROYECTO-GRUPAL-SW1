@@ -36,9 +36,9 @@ const Dashboard_Codigo = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Fixed Background */}
-      <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 -z-10" />
+    <>
+      {/* Fondo oscuro que cubre toda la pantalla - igual que audio */}
+      <div className="fixed inset-0 w-full h-full bg-cyber-bg-primary -z-10" />
 
       {/* Header */}
       <div className="bg-slate-800/50 border-b border-slate-700/50 backdrop-blur-sm sticky top-0 z-10">
@@ -119,7 +119,7 @@ const Dashboard_Codigo = () => {
 
         {activeTab === "stats" && <CodeStatistics />}
       </div>
-    </div>
+    </>
   );
 };
 

@@ -13,17 +13,6 @@ const TextInput = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-cyber-text-accent mb-2">
-        Texto a Analizar
-        <span className={`text-xs ml-2 ${
-          isOverLimit ? 'text-cyber-error' : 
-          isNearLimit ? 'text-yellow-400' : 
-          'text-cyber-text-muted'
-        }`}>
-          ({characterCount.toLocaleString()}/{maxLength.toLocaleString()} caracteres)
-        </span>
-      </label>
-      
       <div className="relative">
         <textarea
           value={value}
@@ -62,11 +51,6 @@ const TextInput = ({
             </div>
           </div>
         )}
-      </div>
-      
-      {/* Help text */}
-      <div className="mt-2 text-xs text-cyber-text-muted">
-        💡 Tip: Textos más largos proporcionan análisis más precisos
       </div>
     </div>
   );

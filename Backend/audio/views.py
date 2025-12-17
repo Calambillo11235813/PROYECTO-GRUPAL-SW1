@@ -113,7 +113,7 @@ class AudioUploadView(APIView):
 
 class AudioAnalysisView(generics.ListAPIView):
     """
-    Vista para listar los audios del usuario autenticado.
+    Vista para listar y eliminar los audios del usuario autenticado.
     """
     serializer_class = AudioUploadSerializer
     permission_classes = [IsAuthenticated]
@@ -121,6 +121,24 @@ class AudioAnalysisView(generics.ListAPIView):
     def get_queryset(self):
         # Solo devolver los audios del usuario autenticado
         return AudioUpload.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    def delete(self, request, *args, **kwargs):
+        """
+        Eliminar todos los audios del usuario autenticado.
+        """
+        try:
+            count = self.get_queryset().count()
+            self.get_queryset().delete()
+            return Response(
+                {'deleted': count, 'message': f'Se eliminaron {count} archivos de audio'},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            logger.error(f"Error al eliminar audios: {str(e)}", exc_info=True)
+            return Response(
+                {'error': 'Error al eliminar los audios'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class CertificadoAudioView(APIView):
@@ -152,5 +170,31 @@ class CertificadoAudioView(APIView):
             logger.error(f"Error al generar el certificado: {str(e)}", exc_info=True)
             return Response(
                 {'error': 'Ocurrió un error al generar el certificado'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class AudioDeleteView(APIView):
+    """
+    Vista para eliminar un audio específico.
+    Solo el propietario del audio puede eliminarlo.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request, audio_id, *args, **kwargs):
+        try:
+            # Solo permitir eliminar al propietario del audio
+            audio_upload = get_object_or_404(AudioUpload, id=audio_id, user=request.user)
+            audio_upload.delete()
+            
+            return Response(
+                {'message': 'Audio eliminado exitosamente'},
+                status=status.HTTP_200_OK
+            )
+            
+        except Exception as e:
+            logger.error(f"Error al eliminar el audio: {str(e)}", exc_info=True)
+            return Response(
+                {'error': 'Ocurrió un error al eliminar el audio'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

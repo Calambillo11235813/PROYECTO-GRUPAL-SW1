@@ -1,11 +1,16 @@
-import React from 'react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertCircle, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Tarjeta para mostrar resultado de análisis
 export default function VideoResultCard({ result }) {
-  const { id, video, score, verdict, created_at } = result;
+  const { id, video, score, verdict, created_at, details } = result;
   const scorePct = Math.round((Number(score) || 0) * 100);
   const isDeepfake = verdict === 'DEEPFAKE';
+  const [showTimestamps, setShowTimestamps] = useState(false);
+  
+  // Extraer frames sospechosos de los detalles
+  const suspiciousFrames = details?.suspicious_frames || [];
+  const hasSuspiciousFrames = isDeepfake && suspiciousFrames.length > 0;
 
   return (
     <div className="bg-slate-900/50 p-6 rounded-lg backdrop-blur-sm border border-slate-700/50">
@@ -62,6 +67,71 @@ export default function VideoResultCard({ result }) {
             )}
           </p>
         </div>
+
+        {/* Sección de marcas de tiempo sospechosas */}
+        {hasSuspiciousFrames && (
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setShowTimestamps(!showTimestamps)}
+              className="w-full flex items-center justify-between p-4 hover:bg-red-900/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-red-400" />
+                <div className="text-left">
+                  <h5 className="text-sm font-semibold text-red-300">
+                    Momentos Sospechosos Detectados
+                  </h5>
+                  <p className="text-xs text-slate-400">
+                    {suspiciousFrames.length} frame{suspiciousFrames.length !== 1 ? 's' : ''} con anomalías
+                  </p>
+                </div>
+              </div>
+              {showTimestamps ? (
+                <ChevronUp className="w-5 h-5 text-slate-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-slate-400" />
+              )}
+            </button>
+
+            {showTimestamps && (
+              <div className="p-4 pt-0 space-y-2 max-h-64 overflow-y-auto">
+                <div className="text-xs text-slate-400 mb-3">
+                  Los siguientes momentos del video presentan características sospechosas de manipulación:
+                </div>
+                {suspiciousFrames.map((frame, idx) => (
+                  <div 
+                    key={idx}
+                    className="flex items-center justify-between bg-slate-800/70 p-3 rounded-lg border border-red-500/20"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-red-400" />
+                        <span className="text-sm font-mono text-red-300 font-semibold">
+                          {frame.timestamp_formatted}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        Frame #{frame.frame_number}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Confianza:</span>
+                      <span className="text-sm font-semibold text-orange-400">
+                        {Math.round(frame.score * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-4 p-3 bg-slate-800/50 rounded border border-slate-700/50">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    💡 <span className="font-semibold text-cyan-300">Tip:</span> Revisa estos momentos específicos 
+                    del video para identificar las anomalías detectadas por el modelo de IA.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

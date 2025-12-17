@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, FileAudio, Clock, Download } from 'lucide-react';
+import { RefreshCw, FileAudio, Clock, Download, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import AudioResultCard from './AudioResultCard';
+import { deleteAudio, deleteAllAudios } from '../../services/AudioService';
 
 const AudioHistory = () => {
   const [audios, setAudios] = useState([]);
@@ -97,6 +98,32 @@ const AudioHistory = () => {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchHistory();
+  };
+
+  // Función para eliminar un audio individual
+  const handleDelete = async (audioId) => {
+    if (!confirm('¿Estás seguro de eliminar este audio? Esta acción no se puede deshacer.')) return;
+    
+    try {
+      await deleteAudio(audioId);
+      setAudios(audios.filter(a => a.id !== audioId));
+    } catch (err) {
+      console.error('Error al eliminar audio:', err);
+      alert('Error al eliminar el audio');
+    }
+  };
+
+  // Función para eliminar todos los audios
+  const handleDeleteAll = async () => {
+    if (!confirm('¿Estás seguro de eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
+    
+    try {
+      await deleteAllAudios();
+      setAudios([]);
+    } catch (err) {
+      console.error('Error al eliminar historial:', err);
+      alert('Error al eliminar el historial');
+    }
   };
 
   const filteredAudios = audios.filter(audio => {
@@ -228,6 +255,15 @@ const AudioHistory = () => {
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
+            {audios.length > 0 && (
+              <button
+                onClick={handleDeleteAll}
+                className="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white transition-colors"
+                title="Eliminar todo"
+              >
+                <AlertTriangle className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <p className="text-slate-400 mt-1">
             {audios.length} {audios.length === 1 ? 'archivo analizado' : 'archivos analizados'}
@@ -266,19 +302,6 @@ const AudioHistory = () => {
             <option value="probability">Probabilidad</option>
             <option value="name">Nombre</option>
           </select>
-        </div>
-      </div>
-
-      {/* Aviso de retención */}
-      <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-        <div className="flex items-start">
-          <svg className="w-5 h-5 text-amber-400 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          <p className="text-sm text-amber-300">
-            <span className="font-medium">Nota importante:</span> Los archivos de audio se eliminarán automáticamente después de 14 días. 
-            Te recomendamos descargar y guardar cualquier análisis importante durante este período.
-          </p>
         </div>
       </div>
 
@@ -334,8 +357,16 @@ const AudioHistory = () => {
                     <button
                       onClick={() => handleDownload(audio)}
                       className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-cyan-400 transition-all duration-200"
+                      title="Descargar"
                     >
                       <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(audio.id)}
+                      className="p-2 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white transition-all duration-200"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setExpandedId(expandedId === audio.id ? null : audio.id)}

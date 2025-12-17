@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
-from .views import CertificadoAudioView
+from .views import CertificadoAudioView, AudioDeleteView
 
 urlpatterns = [
     # Autenticación
@@ -11,6 +11,7 @@ urlpatterns = [
     # Endpoints de audio
     path('', views.AudioAnalysisView.as_view(), name='audio-list'),
     path('upload/', views.AudioUploadView.as_view(), name='audio-upload'),
+    path('<int:audio_id>/delete/', AudioDeleteView.as_view(), name='audio-delete'),
     path('certificado/<int:audio_id>/', 
          CertificadoAudioView.as_view(), 
          name='certificado-audio'
