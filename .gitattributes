@@ -5,3 +5,4 @@ Backend/video/Model_deepfake/*.h5 filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
 *.h5 filter=lfs diff=lfs merge=lfs -text
 *.pkl filter=lfs diff=lfs merge=lfs -text
+Backend/codigo/code_detection-model-complete/model.safetensors filter=lfs diff=lfs merge=lfs -text
