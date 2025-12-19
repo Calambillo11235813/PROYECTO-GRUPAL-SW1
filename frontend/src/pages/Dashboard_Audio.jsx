@@ -3,6 +3,7 @@ import AudioUpload from '../components/Modulo_Audio/AudioUpload';
 import AudioResultCard from '../components/Modulo_Audio/AudioResultCard';
 import AudioHistory from '../components/Modulo_Audio/AudioHistory';
 import { Upload, Zap, Clock } from 'lucide-react';
+import { BASE_URL } from '../services/config';
 
 const DashboardAudio = () => {
   const [activeTab, setActiveTab] = useState('upload');
@@ -10,7 +11,6 @@ const DashboardAudio = () => {
 
   const handleUploadSuccess = (apiResponse) => {
     const response = apiResponse.data || apiResponse;
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
     console.log('Respuesta de la API:', response);
     
     // Extraer la probabilidad
@@ -46,7 +46,7 @@ const DashboardAudio = () => {
     if (response.spectrogram) {
       spectrogramUrl = response.spectrogram.startsWith('http') 
         ? response.spectrogram 
-        : `${import.meta.env.VITE_API_BASE_URL}${response.spectrogram.replace(/^\//, '')}`;
+        : response.spectrogram.startsWith('/') ? response.spectrogram : `/${response.spectrogram}`;
     }
 
     let audioUrl = '#';
@@ -59,16 +59,13 @@ const DashboardAudio = () => {
         } 
         // Caso 2: Si es una ruta relativa local (ej. /media/audios/...)
         else {
-            // Aseguramos que la URL base termine en barra y el path no empiece por ella
-            const cleanBase = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
-            const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
-            
-            audioUrl = `${cleanBase}${cleanPath}`; // Resultado: http://localhost:8000/media/...
+            // Usar ruta relativa directamente
+            audioUrl = filePath.startsWith('/') ? filePath : `/${filePath}`;
         }
     } 
     // Fallback: Si el backend solo devuelve el ID de la entidad
     else if (response.id) {
-        audioUrl = `${apiBaseUrl}api/audio/${response.id}/`;
+        audioUrl = `${BASE_URL}/audio/${response.id}/`;
     }
     
     const result = {

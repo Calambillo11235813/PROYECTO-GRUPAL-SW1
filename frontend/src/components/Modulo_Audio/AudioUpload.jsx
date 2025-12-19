@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { FileAudio, Upload, RefreshCw, Zap, Trash2, AlertCircle } from 'lucide-react';
+import { API_ENDPOINTS } from '../../services/config';
 
 const AudioUpload = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
@@ -106,7 +107,7 @@ const AudioUpload = ({ onUploadSuccess }) => {
       const formData = new FormData();
       formData.append('file', file);  // Changed from 'audio' to 'file' to match backend expectation
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}api/audio/upload/`, {
+      const response = await fetch(`${API_ENDPOINTS.AUDIO}/upload/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

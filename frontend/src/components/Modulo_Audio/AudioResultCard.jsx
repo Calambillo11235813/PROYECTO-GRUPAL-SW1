@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Volume2, Download, Trash2, Zap } from 'lucide-react';
 import AudioPlayer from './AudioPlayer';
+import { API_ENDPOINTS } from '../../services/config';
 
 const AudioResultCard = ({ result, onDownload, onDelete }) => {
   const [audioSrc, setAudioSrc] = useState('');
@@ -89,7 +90,7 @@ const AudioResultCard = ({ result, onDownload, onDelete }) => {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}api/audio/certificado/${result.id}/`,
+        `${API_ENDPOINTS.AUDIO}/certificado/${result.id}/`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

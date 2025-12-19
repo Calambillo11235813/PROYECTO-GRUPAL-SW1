@@ -1,5 +1,5 @@
 // config.js - Configuración centralizada para servicios
-const BASE_URL = 'http://127.0.0.1:8000/api';
+const BASE_URL = '/api';
 
 // Función para obtener headers de autenticación
 export const getAuthHeaders = (includeAuth = false, isFormData = false) => {
@@ -34,10 +34,9 @@ export const getRefreshToken = () => {
 export const API_ENDPOINTS = {
   AUTH: `${BASE_URL}/auth`,
   TEXTO: `${BASE_URL}/texto`,
-  AUDIO: `${BASE_URL}/audio`
+  AUDIO: `${BASE_URL}/audio`,
+  CODIGO: `${BASE_URL}/codigo`,
+  VIDEO: `${BASE_URL}/video`
 };
-
-// Endpoint para el servicio de video
-API_ENDPOINTS.VIDEO = `${BASE_URL}/video`;
 
 export { BASE_URL };

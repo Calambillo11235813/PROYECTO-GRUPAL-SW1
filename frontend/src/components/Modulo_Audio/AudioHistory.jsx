@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, FileAudio, Clock, Download, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import AudioResultCard from './AudioResultCard';
-import { deleteAudio, deleteAllAudios } from '../../services/AudioService';
+import { deleteAudio, deleteAllAudios } from '../../services/audioService';
+import { API_ENDPOINTS } from '../../services/config';
 
 const AudioHistory = () => {
   const [audios, setAudios] = useState([]);
@@ -19,7 +20,7 @@ const AudioHistory = () => {
         throw new Error('No se encontró el token de autenticación');
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}api/audio/`, {
+      const response = await fetch(`${API_ENDPOINTS.AUDIO}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -31,10 +32,6 @@ const AudioHistory = () => {
       }
 
       const data = await response.json();
-
-    // Determinar la URL base de la API para corregir rutas relativas
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-    const cleanBaseUrl = apiBaseUrl.endsWith('/') ? apiBaseUrl : `${apiBaseUrl}/`;
 
     // Transformar la respuesta para que coincida con la estructura esperada
     const formattedAudios = data.map(audio => {
@@ -49,18 +46,17 @@ const AudioHistory = () => {
             const isAI = explicitAI || probPercentage > 50;
 
             // 3. Corrección de URL de audio (para manejar rutas locales)
-            let audioUrl = audio.file || `${cleanBaseUrl}api/audio/${audio.id}/`;
-
-            if (audio.file && !audio.file.startsWith('http')) {
-                const cleanPath = audio.file.startsWith('/') ? audio.file.slice(1) : audio.file;
-                audioUrl = `${cleanBaseUrl}${cleanPath}`;
+            let audioUrl = audio.file;
+            if (!audioUrl) {
+                audioUrl = `${API_ENDPOINTS.AUDIO}/${audio.id}/`;
+            } else if (!audioUrl.startsWith('http')) {
+                audioUrl = audioUrl.startsWith('/') ? audioUrl : `/${audioUrl}`;
             }
 
             // 4. Corrección de URL de espectrograma
             let spectrogramUrl = audio.spectrogram;
-            if (audio.spectrogram && !audio.spectrogram.startsWith('http')) {
-                const cleanPath = audio.spectrogram.startsWith('/') ? audio.spectrogram.slice(1) : audio.spectrogram;
-                spectrogramUrl = `${cleanBaseUrl}${cleanPath}`;
+            if (spectrogramUrl && !spectrogramUrl.startsWith('http')) {
+                spectrogramUrl = spectrogramUrl.startsWith('/') ? spectrogramUrl : `/${spectrogramUrl}`;
             }
 
             return {
@@ -180,7 +176,7 @@ const AudioHistory = () => {
       }
 
       // Si no, hacemos una petición al endpoint de descarga
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}api/audio/${audio.id}/download/`, {
+      const response = await fetch(`${API_ENDPOINTS.AUDIO}/${audio.id}/download/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

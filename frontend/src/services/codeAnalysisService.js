@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://127.0.0.1:8000/api/codigo";
+import { API_ENDPOINTS } from './config';
+
+const API_BASE_URL = API_ENDPOINTS.CODIGO || "/api/codigo";
 
 class CodeAnalysisService {
   constructor() {

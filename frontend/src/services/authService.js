@@ -211,6 +211,12 @@ class AuthService {
       return null;
     }
   }
+
+  // Verificar si el usuario está autenticado
+  isAuthenticated() {
+    const accessToken = this.getAccessToken();
+    return !!accessToken; // Retorna true si existe un token
+  }
 }
 
 // Exportar instancia singleton
